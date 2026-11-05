@@ -1,0 +1,1164 @@
+{
+  "info": {
+    "_postman_id": "afms-collection-2026-clean-uuid",
+    "name": "Agriculture Farm Management System (AFMS) API",
+    "description": "Complete Postman collection for Agriculture Farm Management System including Authentication, Farmers, Farms, Fields, Crops, Crop Plans, Activities, Expenses, Harvests, and Reports.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Authentication & Security",
+      "item": [
+        {
+          "name": "POST - Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "POST - Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"farmer_anita\",\n  \"email\": \"anita.sharma@greenfields.org\",\n  \"password\": \"anita123\",\n  \"fullName\": \"Anita Ramesh Sharma\",\n  \"role\": \"FARMER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "GET - Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me?username=admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"],
+              "query": [
+                { "key": "username", "value": "admin" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Farmer Management",
+      "item": [
+        {
+          "name": "POST - Create Farmer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Vikram Devendra Patil\",\n  \"email\": \"vikram.patil@kisanagro.com\",\n  \"phoneNumber\": \"+91-9876501234\",\n  \"address\": \"Plot 14, Agri Cluster, Nashik, Maharashtra\",\n  \"governmentIdNumber\": \"AGRI-MH-2026-9011\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers"]
+            }
+          }
+        },
+        {
+          "name": "GET - List All Farmers (Paginated & Sorted)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers?page=0&size=10&sort=createdAt,desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" },
+                { "key": "sort", "value": "createdAt,desc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - List Farmers Filtered by Active Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers?active=true&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers"],
+              "query": [
+                { "key": "active", "value": "true" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Get Farmer By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET - Search Farmers (Business API)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers/search?query=Patel&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers", "search"],
+              "query": [
+                { "key": "query", "value": "Patel" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT - Full Update Farmer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Vikram D. Patil\",\n  \"email\": \"vikram.patil@kisanagro.com\",\n  \"phoneNumber\": \"+91-9876509999\",\n  \"address\": \"Plot 14, Agri Cluster, Nashik, Maharashtra - 422003\",\n  \"governmentIdNumber\": \"AGRI-MH-2026-9011\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers", "1"]
+            }
+          }
+        },
+        {
+          "name": "PATCH - Partial Update Farmer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+91-9123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers", "1"]
+            }
+          }
+        },
+        {
+          "name": "PATCH - Toggle Farmer Active Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers/1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers", "1", "status"]
+            }
+          }
+        },
+        {
+          "name": "DELETE - Delete Farmer",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/farmers/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farmers", "99"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Farm Management",
+      "item": [
+        {
+          "name": "POST - Create Farm",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sahyadri Organic Plantation\",\n  \"location\": \"Trimbakeshwar Road, Nashik\",\n  \"totalAreaInAcres\": 65.5,\n  \"farmerId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/farms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farms"]
+            }
+          }
+        },
+        {
+          "name": "GET - List All Farms",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/farms?page=0&size=10&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farms"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" },
+                { "key": "sort", "value": "name,asc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Filter Farms by Farmer ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/farms?farmerId=1&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farms"],
+              "query": [
+                { "key": "farmerId", "value": "1" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Get Farm By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/farms/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farms", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET - Search Farms",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/farms/search?query=Organic&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farms", "search"],
+              "query": [
+                { "key": "query", "value": "Organic" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT - Full Update Farm",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sahyadri Agro Plantation & Nursery\",\n  \"location\": \"Trimbakeshwar Road, Nashik, MH\",\n  \"totalAreaInAcres\": 70.0,\n  \"farmerId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/farms/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farms", "1"]
+            }
+          }
+        },
+        {
+          "name": "PATCH - Partial Update Farm",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"totalAreaInAcres\": 72.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/farms/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farms", "1"]
+            }
+          }
+        },
+        {
+          "name": "DELETE - Delete Farm",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/farms/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "farms", "99"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Field Management",
+      "item": [
+        {
+          "name": "POST - Create Field",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Valley Ridge Sector D\",\n  \"areaInAcres\": 12.5,\n  \"soilType\": \"Black Loamy Clay\",\n  \"irrigationType\": \"Automated Drip Irrigation\",\n  \"status\": \"AVAILABLE\",\n  \"farmId\": 1,\n  \"currentCropId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/fields",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields"]
+            }
+          }
+        },
+        {
+          "name": "GET - List Fields (Filter Farm & Status)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/fields?farmId=1&status=PLANTED&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields"],
+              "query": [
+                { "key": "farmId", "value": "1" },
+                { "key": "status", "value": "PLANTED" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Get Field By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/fields/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET - Search Fields",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/fields/search?query=Loam&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields", "search"],
+              "query": [
+                { "key": "query", "value": "Loam" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH - Update Field Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/fields/1/status?status=PREPARATION",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields", "1", "status"],
+              "query": [
+                { "key": "status", "value": "PREPARATION" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST - Assign Crop to Field",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/fields/1/assign-crop?cropId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields", "1", "assign-crop"],
+              "query": [
+                { "key": "cropId", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE - Delete Field",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/fields/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields", "99"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Crop Management",
+      "item": [
+        {
+          "name": "POST - Register Crop",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mustard\",\n  \"variety\": \"Pusa Bold Hybrid\",\n  \"category\": \"OILSEED\",\n  \"season\": \"RABI\",\n  \"growthDurationDays\": 110,\n  \"optimalTemperature\": \"12C - 25C\",\n  \"waterRequirement\": \"Low (250-350 mm)\",\n  \"standardYieldPerAcre\": 9.5,\n  \"yieldUnit\": \"QUINTAL\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crops",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crops"]
+            }
+          }
+        },
+        {
+          "name": "GET - List Crops (Filter Category & Season)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/crops?category=GRAIN&season=RABI&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crops"],
+              "query": [
+                { "key": "category", "value": "GRAIN" },
+                { "key": "season", "value": "RABI" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Get Crop By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/crops/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crops", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET - Search Crops",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/crops/search?query=rice&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crops", "search"],
+              "query": [
+                { "key": "query", "value": "rice" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT - Full Update Crop",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mustard\",\n  \"variety\": \"Pusa Bold Bio-fortified\",\n  \"category\": \"OILSEED\",\n  \"season\": \"RABI\",\n  \"growthDurationDays\": 115,\n  \"optimalTemperature\": \"12C - 24C\",\n  \"waterRequirement\": \"Low (300 mm)\",\n  \"standardYieldPerAcre\": 10.2,\n  \"yieldUnit\": \"QUINTAL\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crops/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crops", "1"]
+            }
+          }
+        },
+        {
+          "name": "DELETE - Delete Crop",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/crops/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crops", "99"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Crop Planning",
+      "item": [
+        {
+          "name": "POST - Create Crop Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fieldId\": 1,\n  \"cropId\": 1,\n  \"season\": \"RABI\",\n  \"plannedStartDate\": \"2026-11-15\",\n  \"estimatedHarvestDate\": \"2027-03-25\",\n  \"expectedYieldQuantity\": 280.0,\n  \"yieldUnit\": \"QUINTAL\",\n  \"estimatedBudget\": 125000.00,\n  \"status\": \"DRAFT\",\n  \"notes\": \"Comprehensive Rabi wheat planning with certified high-yield seeds.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crop-plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crop-plans"]
+            }
+          }
+        },
+        {
+          "name": "GET - List Crop Plans (Filter Field & Status)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/crop-plans?fieldId=1&status=IN_PROGRESS&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crop-plans"],
+              "query": [
+                { "key": "fieldId", "value": "1" },
+                { "key": "status", "value": "IN_PROGRESS" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Filter Crop Plans By Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/crop-plans/date-range?startDate=2026-01-01&endDate=2026-12-31&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crop-plans", "date-range"],
+              "query": [
+                { "key": "startDate", "value": "2026-01-01" },
+                { "key": "endDate", "value": "2026-12-31" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST - Approve Crop Plan",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/crop-plans/1/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crop-plans", "1", "approve"]
+            }
+          }
+        },
+        {
+          "name": "PATCH - Update Crop Plan Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/crop-plans/1/status?status=IN_PROGRESS",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crop-plans", "1", "status"],
+              "query": [
+                { "key": "status", "value": "IN_PROGRESS" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST - Cancel Crop Plan",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/crop-plans/1/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crop-plans", "1", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Activity Tracking",
+      "item": [
+        {
+          "name": "POST - Schedule Farming Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Second Dose Urea Top Dressing\",\n  \"activityType\": \"FERTILIZING\",\n  \"status\": \"PLANNED\",\n  \"scheduledDate\": \"2026-11-20\",\n  \"assignedTo\": \"Gopal Verma\",\n  \"notes\": \"Apply 45kg per acre followed by immediate light irrigation\",\n  \"fieldId\": 1,\n  \"cropId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/activities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities"]
+            }
+          }
+        },
+        {
+          "name": "GET - List Pending Activities",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "pending"]
+            }
+          }
+        },
+        {
+          "name": "GET - Filter Activities By Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/date-range?startDate=2026-11-01&endDate=2026-11-30&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "date-range"],
+              "query": [
+                { "key": "startDate", "value": "2026-11-01" },
+                { "key": "endDate", "value": "2026-11-30" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Search Activities",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/search?query=irrigation&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "search"],
+              "query": [
+                { "key": "query", "value": "irrigation" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST - Complete Activity",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/1/complete?completionDate=2026-11-05&notes=Completed+successfully+on+time",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "1", "complete"],
+              "query": [
+                { "key": "completionDate", "value": "2026-11-05" },
+                { "key": "notes", "value": "Completed successfully on time" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH - Update Activity Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/1/status?status=IN_PROGRESS",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "1", "status"],
+              "query": [
+                { "key": "status", "value": "IN_PROGRESS" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST - Cancel Activity",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/1/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "1", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Expense Reports",
+      "item": [
+        {
+          "name": "POST - Log Farm Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Drip Irrigation Pipe Fittings & Filters\",\n  \"category\": \"IRRIGATION\",\n  \"amount\": 8450.00,\n  \"expenseDate\": \"2026-11-05\",\n  \"paymentMethod\": \"UPI\",\n  \"vendorName\": \"Jain Irrigation Agro Store\",\n  \"notes\": \"Replacement of clogged inline micro-drippers\",\n  \"farmId\": 1,\n  \"fieldId\": 1,\n  \"cropId\": 1,\n  \"activityId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses"]
+            }
+          }
+        },
+        {
+          "name": "GET - List Expenses (Filter Farm & Category)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses?farmId=1&category=FERTILIZERS&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses"],
+              "query": [
+                { "key": "farmId", "value": "1" },
+                { "key": "category", "value": "FERTILIZERS" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Filter Expenses By Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/date-range?startDate=2026-01-01&endDate=2026-12-31&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "date-range"],
+              "query": [
+                { "key": "startDate", "value": "2026-01-01" },
+                { "key": "endDate", "value": "2026-12-31" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Expense Aggregation Report by Category",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/report/by-category",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "report", "by-category"]
+            }
+          }
+        },
+        {
+          "name": "GET - Filtered Expense Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/report/filtered?farmId=1&startDate=2026-01-01&endDate=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "report", "filtered"],
+              "query": [
+                { "key": "farmId", "value": "1" },
+                { "key": "startDate", "value": "2026-01-01" },
+                { "key": "endDate", "value": "2026-12-31" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Total Farm Expenditure Sum",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/expenses/report/farm-total?farmId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expenses", "report", "farm-total"],
+              "query": [
+                { "key": "farmId", "value": "1" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Harvest Records",
+      "item": [
+        {
+          "name": "POST - Record Harvest",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"harvestDate\": \"2026-11-05\",\n  \"quantity\": 120.0,\n  \"unit\": \"QUINTAL\",\n  \"qualityGrade\": \"Export Quality A\",\n  \"unitPrice\": 3400.00,\n  \"totalRevenue\": 408000.00,\n  \"storageLocation\": \"Silo 4, Agro Terminal\",\n  \"notes\": \"Winter wheat harvest with high grain test weight.\",\n  \"fieldId\": 1,\n  \"cropId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/harvests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "harvests"]
+            }
+          }
+        },
+        {
+          "name": "GET - List Harvest Records (Filter Field & Crop)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/harvests?fieldId=2&cropId=2&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "harvests"],
+              "query": [
+                { "key": "fieldId", "value": "2" },
+                { "key": "cropId", "value": "2" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Filter Harvests By Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/harvests/date-range?startDate=2026-01-01&endDate=2026-12-31&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "harvests", "date-range"],
+              "query": [
+                { "key": "startDate", "value": "2026-01-01" },
+                { "key": "endDate", "value": "2026-12-31" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Harvest Yield & Revenue Report by Crop",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/harvests/report/by-crop",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "harvests", "report", "by-crop"]
+            }
+          }
+        },
+        {
+          "name": "GET - Harvest Yield & Revenue Filtered by Date",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/harvests/report/by-crop-and-date?startDate=2026-01-01&endDate=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "harvests", "report", "by-crop-and-date"],
+              "query": [
+                { "key": "startDate", "value": "2026-01-01" },
+                { "key": "endDate", "value": "2026-12-31" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Total Farm Harvest Revenue",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/harvests/report/farm-revenue?farmId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "harvests", "report", "farm-revenue"],
+              "query": [
+                { "key": "farmId", "value": "1" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Comprehensive Reports",
+      "item": [
+        {
+          "name": "GET - Farm Financial Statement & Net Profit",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/financial/farm/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "financial", "farm", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET - All Farms Financial Profitability Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/financial/all-farms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "financial", "all-farms"]
+            }
+          }
+        },
+        {
+          "name": "GET - Farmer Consolidated Financial Statement (Farmer 1)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/financial/farmer/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "financial", "farmer", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET - Farmer Consolidated Financial Statement (Farmer 2)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/financial/farmer/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "financial", "farmer", "2"]
+            }
+          }
+        },
+        {
+          "name": "GET - All Farmers Consolidated Profitability Statement",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/financial/all-farmers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "financial", "all-farmers"]
+            }
+          }
+        },
+        {
+          "name": "GET - Complete Field Lifecycle History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/field/1/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "field", "1", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Actuator & System Health Monitoring",
+      "item": [
+        {
+          "name": "GET - Actuator Discovery Links",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator"]
+            }
+          }
+        },
+        {
+          "name": "GET - Health Check (Agricultural Ecosystem & DB)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "GET - Application Info (Build, JVM & Agro Totals)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "info"]
+            }
+          }
+        },
+        {
+          "name": "GET - Custom Agriculture Operational Endpoint",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/agriculture",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "agriculture"]
+            }
+          }
+        },
+        {
+          "name": "GET - Scheduled Tasks Monitor (Hourly Task Status)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/scheduledtasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "scheduledtasks"]
+            }
+          }
+        },
+        {
+          "name": "GET - Metrics Index",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics"]
+            }
+          }
+        },
+        {
+          "name": "GET - JVM Memory Used Metric",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics/jvm.memory.used",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics", "jvm.memory.used"]
+            }
+          }
+        },
+        {
+          "name": "GET - HTTP URL Request Mappings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/mappings",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "mappings"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. File Handling & CSV Data Exports",
+      "item": [
+        {
+          "name": "GET - Export Harvest Records to CSV",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/files/export/harvests-csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "export", "harvests-csv"]
+            }
+          }
+        },
+        {
+          "name": "GET - Export Farm Expenses to CSV",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/files/export/expenses-csv?farmId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "export", "expenses-csv"],
+              "query": [
+                { "key": "farmId", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST - Upload Agricultural Document",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload"]
+            }
+          }
+        },
+        {
+          "name": "GET - Download Stored Document",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/files/download/sample_soil_report.txt",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "download", "sample_soil_report.txt"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
