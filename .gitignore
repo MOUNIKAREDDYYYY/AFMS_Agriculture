@@ -35,3 +35,7 @@ build/
 ### Uploads ###
 uploads/*
 !uploads/.gitkeep
+
+### Libraries ###
+lib/
+
