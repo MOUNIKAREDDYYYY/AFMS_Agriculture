@@ -2,9 +2,9 @@ package com.AgricultureFMSystem.AgricultureFMSystem.service;
 
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.FarmFinancialSummaryDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.FarmerFinancialSummaryDTO;
+import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.FieldHistoryResponseDTO;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * ============================================================================================
@@ -21,5 +21,5 @@ public interface ReportService {
 
     List<FarmerFinancialSummaryDTO> getAllFarmersFinancialSummary();
 
-    Map<String, Object> getFieldHistory(Long fieldId);
+    FieldHistoryResponseDTO getFieldHistory(Long fieldId);
 }

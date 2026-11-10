@@ -34,7 +34,7 @@ public class FarmerServiceImpl implements FarmerService {
     private final FarmerRepository farmerRepository;
     private final FarmerMapper farmerMapper;
 
-    // // Evicts all cached farmer entries when a new farmer registers
+    // Evicts all cached farmer entries when a new farmer registers
     @Override
     @Transactional
     @CacheEvict(value = "farmers", allEntries = true)
@@ -52,7 +52,7 @@ public class FarmerServiceImpl implements FarmerService {
         return farmerMapper.toResponseDTO(savedFarmer);
     }
 
-    // // Caches farmer profile by ID in "farmers" cache region
+    // Caches farmer profile by ID in "farmers" cache region
     @Override
     @Cacheable(value = "farmers", key = "#id")
     public FarmerResponseDTO getFarmerById(Long id) {
@@ -86,7 +86,7 @@ public class FarmerServiceImpl implements FarmerService {
         return PagedResponse.of(page);
     }
 
-    // // Evicts stale farmer cache upon update
+    // Evicts stale farmer cache upon update
     @Override
     @Transactional
     @CacheEvict(value = "farmers", allEntries = true)
@@ -108,6 +108,7 @@ public class FarmerServiceImpl implements FarmerService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "farmers", allEntries = true)
     public FarmerResponseDTO patchFarmer(Long id, Map<String, Object> updates) {
         log.info("Applying partial updates to farmer ID: {}", id);
         Farmer existing = farmerRepository.findById(id)
@@ -115,13 +116,13 @@ public class FarmerServiceImpl implements FarmerService {
 
         updates.forEach((key, value) -> {
             switch (key) {
-                case "fullName" -> existing.setFullName((String) value);
-                case "phoneNumber" -> existing.setPhoneNumber((String) value);
-                case "address" -> existing.setAddress((String) value);
-                case "governmentIdNumber" -> existing.setGovernmentIdNumber((String) value);
-                case "active" -> existing.setActive(Boolean.parseBoolean(value.toString()));
+                case "fullName" -> existing.setFullName(PatchHelper.requireNonBlankString("fullName", value));
+                case "phoneNumber" -> existing.setPhoneNumber(PatchHelper.requireNonBlankString("phoneNumber", value));
+                case "address" -> existing.setAddress(PatchHelper.optionalString("address", value));
+                case "governmentIdNumber" -> existing.setGovernmentIdNumber(PatchHelper.optionalString("governmentIdNumber", value));
+                case "active" -> existing.setActive(PatchHelper.requireBoolean("active", value));
                 case "email" -> {
-                    String newEmail = (String) value;
+                    String newEmail = PatchHelper.requireNonBlankString("email", value);
                     if (!existing.getEmail().equalsIgnoreCase(newEmail) && farmerRepository.existsByEmail(newEmail)) {
                         throw new DuplicateResourceException("Email '" + newEmail + "' is already in use.");
                     }
@@ -134,7 +135,7 @@ public class FarmerServiceImpl implements FarmerService {
         return farmerMapper.toResponseDTO(saved);
     }
 
-    // // Evicts cached farmer upon deletion
+    // Evicts cached farmer upon deletion
     @Override
     @Transactional
     @CacheEvict(value = "farmers", allEntries = true)
@@ -145,7 +146,7 @@ public class FarmerServiceImpl implements FarmerService {
         farmerRepository.delete(farmer);
     }
 
-    // // Evicts cached farmer upon status toggle
+    // Evicts cached farmer upon status toggle
     @Override
     @Transactional
     @CacheEvict(value = "farmers", allEntries = true)

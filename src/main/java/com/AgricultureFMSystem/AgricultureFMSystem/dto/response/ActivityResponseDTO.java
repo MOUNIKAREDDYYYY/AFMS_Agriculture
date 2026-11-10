@@ -1,7 +1,7 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.dto.response;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityType;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

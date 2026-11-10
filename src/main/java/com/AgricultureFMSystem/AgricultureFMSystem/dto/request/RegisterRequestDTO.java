@@ -1,6 +1,6 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.dto.request;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.UserRole;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

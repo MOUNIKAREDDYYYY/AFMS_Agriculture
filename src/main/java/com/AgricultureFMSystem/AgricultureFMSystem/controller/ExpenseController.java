@@ -4,14 +4,13 @@ import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.ExpenseRequestDTO
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ExpenseResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ExpenseSummaryDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ExpenseCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ExpenseCategory;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.ExpenseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -42,7 +41,6 @@ import java.util.Map;
  * - GET    /api/expenses/report/filtered      -> Aggregation: sum/count by category with farm & date filters
  * - GET    /api/expenses/report/farm-total    -> Total expenditure sum for a farm
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/expenses")
 @RequiredArgsConstructor
@@ -54,9 +52,7 @@ public class ExpenseController {
     @PostMapping
     @Operation(summary = "Log an expense", description = "Records a farming expenditure associated with a farm, field, or crop.")
     public ResponseEntity<ExpenseResponseDTO> createExpense(@Valid @RequestBody ExpenseRequestDTO requestDTO) {
-        log.info("REST request to record expense: {}", requestDTO.getTitle());
-        ExpenseResponseDTO response = expenseService.createExpense(requestDTO);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(expenseService.createExpense(requestDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -70,15 +66,8 @@ public class ExpenseController {
             @RequestParam(required = false) ExpenseCategory category,
             @PageableDefault(page = 0, size = 10, sort = "expenseDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.debug("REST request to list expenses: farmId={}, fieldId={}, category={}", farmId, fieldId, category);
-        if (farmId != null) {
-            return ResponseEntity.ok(expenseService.getExpensesByFarmId(farmId, pageable));
-        }
-        if (fieldId != null) {
-            return ResponseEntity.ok(expenseService.getExpensesByFieldId(fieldId, pageable));
-        }
-        if (category != null) {
-            return ResponseEntity.ok(expenseService.getExpensesByCategory(category, pageable));
+        if (farmId != null || fieldId != null || category != null) {
+            return ResponseEntity.ok(expenseService.getExpensesByFilters(farmId, fieldId, category, pageable));
         }
         return ResponseEntity.ok(expenseService.getAllExpenses(pageable));
     }
@@ -86,7 +75,6 @@ public class ExpenseController {
     @GetMapping("/{id}")
     @Operation(summary = "Get expense by ID", description = "Fetches expense details by ID.")
     public ResponseEntity<ExpenseResponseDTO> getExpenseById(@PathVariable Long id) {
-        log.debug("REST request to get expense ID: {}", id);
         return ResponseEntity.ok(expenseService.getExpenseById(id));
     }
 
@@ -96,7 +84,6 @@ public class ExpenseController {
             @RequestParam String query,
             @PageableDefault(page = 0, size = 10, sort = "expenseDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.debug("REST search expenses with query: {}", query);
         return ResponseEntity.ok(expenseService.searchExpenses(query, pageable));
     }
 
@@ -107,7 +94,6 @@ public class ExpenseController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @PageableDefault(page = 0, size = 10, sort = "expenseDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.debug("REST request for expenses between {} and {}", startDate, endDate);
         return ResponseEntity.ok(expenseService.getExpensesByDateRange(startDate, endDate, pageable));
     }
 
@@ -117,7 +103,6 @@ public class ExpenseController {
             @PathVariable Long id,
             @Valid @RequestBody ExpenseRequestDTO requestDTO) {
 
-        log.info("REST request to update expense ID: {}", id);
         return ResponseEntity.ok(expenseService.updateExpense(id, requestDTO));
     }
 
@@ -127,14 +112,12 @@ public class ExpenseController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
 
-        log.info("REST request to patch expense ID: {}", id);
         return ResponseEntity.ok(expenseService.patchExpense(id, updates));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete expense", description = "Deletes an expense record.")
     public ResponseEntity<Void> deleteExpense(@PathVariable Long id) {
-        log.info("REST request to delete expense ID: {}", id);
         expenseService.deleteExpense(id);
         return ResponseEntity.noContent().build();
     }
@@ -142,7 +125,6 @@ public class ExpenseController {
     @GetMapping("/report/by-category")
     @Operation(summary = "Expense report by category", description = "Business API: Aggregation query summing total expenses by category.")
     public ResponseEntity<List<ExpenseSummaryDTO>> getReportByCategory() {
-        log.info("REST request for expense summary report grouped by category");
         return ResponseEntity.ok(expenseService.getExpenseReportByCategory());
     }
 
@@ -153,14 +135,12 @@ public class ExpenseController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
-        log.info("REST request for filtered expense report: farmId={}, start={}, end={}", farmId, startDate, endDate);
         return ResponseEntity.ok(expenseService.getExpenseReportByFilters(farmId, startDate, endDate));
     }
 
     @GetMapping("/report/farm-total")
     @Operation(summary = "Total expenses for a farm", description = "Business API: Calculates grand total of all expenses for a given farm.")
     public ResponseEntity<BigDecimal> getTotalExpensesForFarm(@RequestParam Long farmId) {
-        log.info("REST request for total farm expenses: farmId={}", farmId);
         return ResponseEntity.ok(expenseService.getTotalExpensesByFarm(farmId));
     }
 }

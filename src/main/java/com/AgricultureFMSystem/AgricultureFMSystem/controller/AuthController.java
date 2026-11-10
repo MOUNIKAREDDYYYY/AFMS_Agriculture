@@ -3,17 +3,18 @@ package com.AgricultureFMSystem.AgricultureFMSystem.controller;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.LoginRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.RegisterRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.AuthResponseDTO;
+import com.AgricultureFMSystem.AgricultureFMSystem.entity.User;
+import com.AgricultureFMSystem.AgricultureFMSystem.exception.UnauthorizedException;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -23,25 +24,24 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    @Operation(summary = "User Login", description = "Authenticates user with username or email and password, returning a Bearer token.")
+    @Operation(summary = "User Login", description = "Authenticates user with username or email and password, returning a Bearer JWT.")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO requestDTO) {
-        log.info("REST request to login: {}", requestDTO.getUsernameOrEmail());
-        AuthResponseDTO response = authService.login(requestDTO);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(authService.login(requestDTO));
     }
 
     @PostMapping("/register")
     @Operation(summary = "User Registration", description = "Registers a new user (Farmer, Agronomist, Supervisor, Admin).")
     public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequestDTO requestDTO) {
-        log.info("REST request to register user: {}", requestDTO.getUsername());
-        AuthResponseDTO response = authService.register(requestDTO);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(authService.register(requestDTO), HttpStatus.CREATED);
     }
 
     @GetMapping("/me")
-    @Operation(summary = "Get Current User Profile", description = "Fetches user details by username.")
-    public ResponseEntity<AuthResponseDTO> getCurrentUser(@RequestParam String username) {
-        log.debug("REST request for profile of user: {}", username);
-        return ResponseEntity.ok(authService.getCurrentUser(username));
+    @Operation(summary = "Get Current User Profile", description = "Returns the profile of the authenticated Bearer token user.")
+    public ResponseEntity<AuthResponseDTO> getCurrentUser(HttpServletRequest request) {
+        Object principal = request.getAttribute("CURRENT_USER");
+        if (!(principal instanceof User currentUser)) {
+            throw new UnauthorizedException("Authorization Bearer token is required.");
+        }
+        return ResponseEntity.ok(authService.getCurrentUser(currentUser.getUsername()));
     }
 }

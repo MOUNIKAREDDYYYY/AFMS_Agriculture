@@ -3,7 +3,7 @@ package com.AgricultureFMSystem.AgricultureFMSystem.service;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.FieldRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.FieldResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.FieldStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.FieldStatus;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Map;
@@ -21,9 +21,7 @@ public interface FieldService {
 
     PagedResponse<FieldResponseDTO> getAllFields(Pageable pageable);
 
-    PagedResponse<FieldResponseDTO> getFieldsByFarmId(Long farmId, Pageable pageable);
-
-    PagedResponse<FieldResponseDTO> getFieldsByStatus(FieldStatus status, Pageable pageable);
+    PagedResponse<FieldResponseDTO> getFieldsByFilters(Long farmId, FieldStatus status, Pageable pageable);
 
     PagedResponse<FieldResponseDTO> searchFields(String query, Pageable pageable);
 

@@ -4,8 +4,8 @@ import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.CropRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.CropResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Crop;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropCategory;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import com.AgricultureFMSystem.AgricultureFMSystem.exception.ResourceNotFoundException;
 import com.AgricultureFMSystem.AgricultureFMSystem.mapper.CropMapper;
 import com.AgricultureFMSystem.AgricultureFMSystem.repository.CropRepository;
@@ -35,7 +35,7 @@ public class CropServiceImpl implements CropService {
     private final CropRepository cropRepository;
     private final CropMapper cropMapper;
 
-    // // Evict all entries in "crops" cache region when a new crop is registered
+    // Evict all entries in "crops" cache region when a new crop is registered
     @Override
     @Transactional
     @CacheEvict(value = "crops", allEntries = true)
@@ -46,7 +46,7 @@ public class CropServiceImpl implements CropService {
         return cropMapper.toResponseDTO(saved);
     }
 
-    // // Cache hit will bypass database query; Cache miss queries database and caches response by ID
+    // Cache hit will bypass database query; Cache miss queries database and caches response by ID
     @Override
     @Cacheable(value = "crops", key = "#id")
     public CropResponseDTO getCropById(Long id) {
@@ -65,17 +65,9 @@ public class CropServiceImpl implements CropService {
     }
 
     @Override
-    public PagedResponse<CropResponseDTO> getCropsByCategory(CropCategory category, Pageable pageable) {
-        log.debug("Fetching crops by category: {}", category);
-        Page<CropResponseDTO> page = cropRepository.findByCategory(category, pageable)
-                .map(cropMapper::toResponseDTO);
-        return PagedResponse.of(page);
-    }
-
-    @Override
-    public PagedResponse<CropResponseDTO> getCropsBySeason(CropSeason season, Pageable pageable) {
-        log.debug("Fetching crops by season: {}", season);
-        Page<CropResponseDTO> page = cropRepository.findBySeason(season, pageable)
+    public PagedResponse<CropResponseDTO> getCropsByFilters(CropCategory category, CropSeason season, Pageable pageable) {
+        log.debug("Fetching crops with filters: category={}, season={}", category, season);
+        Page<CropResponseDTO> page = cropRepository.findByFilters(category, season, pageable)
                 .map(cropMapper::toResponseDTO);
         return PagedResponse.of(page);
     }
@@ -88,7 +80,7 @@ public class CropServiceImpl implements CropService {
         return PagedResponse.of(page);
     }
 
-    // // Evicts stale cache upon full update
+    // Evicts stale cache upon full update
     @Override
     @Transactional
     @CacheEvict(value = "crops", allEntries = true)
@@ -102,7 +94,7 @@ public class CropServiceImpl implements CropService {
         return cropMapper.toResponseDTO(updated);
     }
 
-    // // Evicts stale cache upon partial patch
+    // Evicts stale cache upon partial patch
     @Override
     @Transactional
     @CacheEvict(value = "crops", allEntries = true)
@@ -113,15 +105,16 @@ public class CropServiceImpl implements CropService {
 
         updates.forEach((key, value) -> {
             switch (key) {
-                case "name" -> existing.setName((String) value);
-                case "variety" -> existing.setVariety((String) value);
-                case "category" -> existing.setCategory(CropCategory.valueOf(value.toString()));
-                case "season" -> existing.setSeason(CropSeason.valueOf(value.toString()));
-                case "growthDurationDays" -> existing.setGrowthDurationDays(Integer.parseInt(value.toString()));
-                case "optimalTemperature" -> existing.setOptimalTemperature((String) value);
-                case "waterRequirement" -> existing.setWaterRequirement((String) value);
-                case "standardYieldPerAcre" -> existing.setStandardYieldPerAcre(Double.parseDouble(value.toString()));
-                case "yieldUnit" -> existing.setYieldUnit((String) value);
+                case "name" -> existing.setName(PatchHelper.requireNonBlankString("name", value));
+                case "variety" -> existing.setVariety(PatchHelper.optionalString("variety", value));
+                case "category" -> existing.setCategory(PatchHelper.requireEnum("category", value, CropCategory.class));
+                case "season" -> existing.setSeason(PatchHelper.requireEnum("season", value, CropSeason.class));
+                case "growthDurationDays" -> existing.setGrowthDurationDays(PatchHelper.requireInteger("growthDurationDays", value, true));
+                case "optimalTemperature" -> existing.setOptimalTemperature(PatchHelper.optionalString("optimalTemperature", value));
+                case "waterRequirement" -> existing.setWaterRequirement(PatchHelper.optionalString("waterRequirement", value));
+                case "standardYieldPerAcre" -> existing.setStandardYieldPerAcre(
+                        value == null ? null : PatchHelper.requireDouble("standardYieldPerAcre", value, true));
+                case "yieldUnit" -> existing.setYieldUnit(PatchHelper.optionalString("yieldUnit", value));
             }
         });
 
@@ -129,7 +122,7 @@ public class CropServiceImpl implements CropService {
         return cropMapper.toResponseDTO(saved);
     }
 
-    // // Evicts cached crop upon deletion
+    // Evicts cached crop upon deletion
     @Override
     @Transactional
     @CacheEvict(value = "crops", allEntries = true)

@@ -1,7 +1,7 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.dto.response;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropPlanStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropPlanStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

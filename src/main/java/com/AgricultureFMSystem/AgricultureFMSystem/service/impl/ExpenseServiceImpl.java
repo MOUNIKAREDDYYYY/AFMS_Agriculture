@@ -5,13 +5,14 @@ import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ExpenseResponseD
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ExpenseSummaryDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.*;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ExpenseCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ExpenseCategory;
 import com.AgricultureFMSystem.AgricultureFMSystem.exception.ResourceNotFoundException;
 import com.AgricultureFMSystem.AgricultureFMSystem.mapper.ExpenseMapper;
 import com.AgricultureFMSystem.AgricultureFMSystem.repository.*;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.ExpenseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ExpenseResponseDTO createExpense(ExpenseRequestDTO requestDTO) {
         log.info("Recording expense '{}' of amount {} for farm ID {}",
                 requestDTO.getTitle(), requestDTO.getAmount(), requestDTO.getFarmId());
@@ -89,31 +91,15 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public PagedResponse<ExpenseResponseDTO> getExpensesByFarmId(Long farmId, Pageable pageable) {
-        log.debug("Fetching expenses for farm ID: {}", farmId);
-        if (!farmRepository.existsById(farmId)) {
+    public PagedResponse<ExpenseResponseDTO> getExpensesByFilters(Long farmId, Long fieldId, ExpenseCategory category, Pageable pageable) {
+        log.debug("Fetching expenses with filters: farmId={}, fieldId={}, category={}", farmId, fieldId, category);
+        if (farmId != null && !farmRepository.existsById(farmId)) {
             throw new ResourceNotFoundException("Farm", "id", farmId);
         }
-        Page<ExpenseResponseDTO> page = expenseRepository.findByFarmId(farmId, pageable)
-                .map(expenseMapper::toResponseDTO);
-        return PagedResponse.of(page);
-    }
-
-    @Override
-    public PagedResponse<ExpenseResponseDTO> getExpensesByFieldId(Long fieldId, Pageable pageable) {
-        log.debug("Fetching expenses for field ID: {}", fieldId);
-        if (!fieldRepository.existsById(fieldId)) {
+        if (fieldId != null && !fieldRepository.existsById(fieldId)) {
             throw new ResourceNotFoundException("Field", "id", fieldId);
         }
-        Page<ExpenseResponseDTO> page = expenseRepository.findByFieldId(fieldId, pageable)
-                .map(expenseMapper::toResponseDTO);
-        return PagedResponse.of(page);
-    }
-
-    @Override
-    public PagedResponse<ExpenseResponseDTO> getExpensesByCategory(ExpenseCategory category, Pageable pageable) {
-        log.debug("Fetching expenses by category: {}", category);
-        Page<ExpenseResponseDTO> page = expenseRepository.findByCategory(category, pageable)
+        Page<ExpenseResponseDTO> page = expenseRepository.findByFilters(farmId, fieldId, category, pageable)
                 .map(expenseMapper::toResponseDTO);
         return PagedResponse.of(page);
     }
@@ -136,6 +122,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ExpenseResponseDTO updateExpense(Long id, ExpenseRequestDTO requestDTO) {
         log.info("Updating expense ID: {}", id);
         Expense existing = expenseRepository.findById(id)
@@ -172,6 +159,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ExpenseResponseDTO patchExpense(Long id, Map<String, Object> updates) {
         log.info("Applying partial updates to expense ID: {}", id);
         Expense existing = expenseRepository.findById(id)
@@ -179,13 +167,13 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         updates.forEach((key, value) -> {
             switch (key) {
-                case "title" -> existing.setTitle((String) value);
-                case "category" -> existing.setCategory(ExpenseCategory.valueOf(value.toString()));
-                case "amount" -> existing.setAmount(new BigDecimal(value.toString()));
-                case "expenseDate" -> existing.setExpenseDate(LocalDate.parse(value.toString()));
-                case "paymentMethod" -> existing.setPaymentMethod((String) value);
-                case "vendorName" -> existing.setVendorName((String) value);
-                case "notes" -> existing.setNotes((String) value);
+                case "title" -> existing.setTitle(PatchHelper.requireNonBlankString("title", value));
+                case "category" -> existing.setCategory(PatchHelper.requireEnum("category", value, ExpenseCategory.class));
+                case "amount" -> existing.setAmount(PatchHelper.requireBigDecimal("amount", value, true));
+                case "expenseDate" -> existing.setExpenseDate(PatchHelper.requireLocalDate("expenseDate", value));
+                case "paymentMethod" -> existing.setPaymentMethod(PatchHelper.optionalString("paymentMethod", value));
+                case "vendorName" -> existing.setVendorName(PatchHelper.optionalString("vendorName", value));
+                case "notes" -> existing.setNotes(PatchHelper.optionalString("notes", value));
             }
         });
 
@@ -195,6 +183,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public void deleteExpense(Long id) {
         log.info("Deleting expense ID: {}", id);
         Expense expense = expenseRepository.findById(id)

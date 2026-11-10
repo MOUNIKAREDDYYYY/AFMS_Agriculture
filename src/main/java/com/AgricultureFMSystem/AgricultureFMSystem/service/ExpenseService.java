@@ -4,7 +4,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.ExpenseRequestDTO
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ExpenseResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ExpenseSummaryDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ExpenseCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ExpenseCategory;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
@@ -25,11 +25,7 @@ public interface ExpenseService {
 
     PagedResponse<ExpenseResponseDTO> getAllExpenses(Pageable pageable);
 
-    PagedResponse<ExpenseResponseDTO> getExpensesByFarmId(Long farmId, Pageable pageable);
-
-    PagedResponse<ExpenseResponseDTO> getExpensesByFieldId(Long fieldId, Pageable pageable);
-
-    PagedResponse<ExpenseResponseDTO> getExpensesByCategory(ExpenseCategory category, Pageable pageable);
+    PagedResponse<ExpenseResponseDTO> getExpensesByFilters(Long farmId, Long fieldId, ExpenseCategory category, Pageable pageable);
 
     PagedResponse<ExpenseResponseDTO> getExpensesByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable);
 

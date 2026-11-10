@@ -1,15 +1,13 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.repository;
 
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Field;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.FieldStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.FieldStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 /**
  * ============================================================================================
@@ -19,13 +17,12 @@ import java.util.List;
 @Repository
 public interface FieldRepository extends JpaRepository<Field, Long> {
 
-    Page<Field> findByFarmId(Long farmId, Pageable pageable);
-
-    List<Field> findByFarmId(Long farmId);
-
-    Page<Field> findByStatus(FieldStatus status, Pageable pageable);
-
-    Page<Field> findByFarmIdAndStatus(Long farmId, FieldStatus status, Pageable pageable);
+    @Query("SELECT f FROM Field f WHERE " +
+           "(:farmId IS NULL OR f.farm.id = :farmId) AND " +
+           "(:status IS NULL OR f.status = :status)")
+    Page<Field> findByFilters(@Param("farmId") Long farmId,
+                              @Param("status") FieldStatus status,
+                              Pageable pageable);
 
     @Query("SELECT f FROM Field f WHERE " +
            "LOWER(f.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

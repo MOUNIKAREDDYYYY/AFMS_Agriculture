@@ -1,6 +1,6 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.dto.response;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ExpenseCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ExpenseCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,7 +1,7 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.dto.request;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityType;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

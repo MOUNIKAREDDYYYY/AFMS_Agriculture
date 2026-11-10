@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -34,7 +33,6 @@ import java.util.Map;
  * - GET    /api/farmers/search  -> Search by name, email, or government ID
  * - PATCH  /api/farmers/{id}/status -> Toggle farmer active status
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/farmers")
 @RequiredArgsConstructor
@@ -49,9 +47,7 @@ public class FarmerController {
     @ApiResponse(responseCode = "400", description = "Validation failure")
     @ApiResponse(responseCode = "409", description = "Email already in use")
     public ResponseEntity<FarmerResponseDTO> createFarmer(@Valid @RequestBody FarmerRequestDTO requestDTO) {
-        log.info("REST request to create farmer: {}", requestDTO.getEmail());
-        FarmerResponseDTO response = farmerService.createFarmer(requestDTO);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(farmerService.createFarmer(requestDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -61,7 +57,6 @@ public class FarmerController {
             @RequestParam(required = false) Boolean active,
             @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.debug("REST request to get farmers, active filter: {}", active);
         if (active != null) {
             return ResponseEntity.ok(farmerService.getFarmersByActiveStatus(active, pageable));
         }
@@ -73,7 +68,6 @@ public class FarmerController {
     @ApiResponse(responseCode = "200", description = "Farmer found")
     @ApiResponse(responseCode = "404", description = "Farmer not found")
     public ResponseEntity<FarmerResponseDTO> getFarmerById(@PathVariable Long id) {
-        log.debug("REST request to get farmer by ID: {}", id);
         return ResponseEntity.ok(farmerService.getFarmerById(id));
     }
 
@@ -83,7 +77,6 @@ public class FarmerController {
             @RequestParam String query,
             @PageableDefault(page = 0, size = 10, sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST search farmers with query: {}", query);
         return ResponseEntity.ok(farmerService.searchFarmers(query, pageable));
     }
 
@@ -95,7 +88,6 @@ public class FarmerController {
             @PathVariable Long id,
             @Valid @RequestBody FarmerRequestDTO requestDTO) {
 
-        log.info("REST request to update farmer ID: {}", id);
         return ResponseEntity.ok(farmerService.updateFarmer(id, requestDTO));
     }
 
@@ -105,7 +97,6 @@ public class FarmerController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
 
-        log.info("REST request to patch farmer ID: {}", id);
         return ResponseEntity.ok(farmerService.patchFarmer(id, updates));
     }
 
@@ -114,7 +105,6 @@ public class FarmerController {
     @ApiResponse(responseCode = "204", description = "Farmer successfully deleted")
     @ApiResponse(responseCode = "404", description = "Farmer not found")
     public ResponseEntity<Void> deleteFarmer(@PathVariable Long id) {
-        log.info("REST request to delete farmer ID: {}", id);
         farmerService.deleteFarmer(id);
         return ResponseEntity.noContent().build();
     }
@@ -122,7 +112,6 @@ public class FarmerController {
     @PatchMapping("/{id}/status")
     @Operation(summary = "Toggle active status", description = "Toggles a farmer between active and inactive states.")
     public ResponseEntity<FarmerResponseDTO> toggleStatus(@PathVariable Long id) {
-        log.info("REST request to toggle status for farmer ID: {}", id);
         return ResponseEntity.ok(farmerService.toggleFarmerStatus(id));
     }
 }

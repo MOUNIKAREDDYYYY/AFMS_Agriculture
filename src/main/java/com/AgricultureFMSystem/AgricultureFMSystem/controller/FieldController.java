@@ -3,14 +3,13 @@ package com.AgricultureFMSystem.AgricultureFMSystem.controller;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.FieldRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.FieldResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.FieldStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.FieldStatus;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.FieldService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -35,7 +34,6 @@ import java.util.Map;
  * - PATCH  /api/fields/{id}/status     -> Update field status (AVAILABLE, PLANTED, FALLOW, PREPARATION)
  * - POST   /api/fields/{id}/assign-crop -> Assign or reassign crop to field
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/fields")
 @RequiredArgsConstructor
@@ -47,9 +45,7 @@ public class FieldController {
     @PostMapping
     @Operation(summary = "Create a new field", description = "Adds a field plot to a specified Farm.")
     public ResponseEntity<FieldResponseDTO> createField(@Valid @RequestBody FieldRequestDTO requestDTO) {
-        log.info("REST request to create field: {}", requestDTO.getName());
-        FieldResponseDTO response = fieldService.createField(requestDTO);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(fieldService.createField(requestDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -61,12 +57,8 @@ public class FieldController {
             @RequestParam(required = false) FieldStatus status,
             @PageableDefault(page = 0, size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST request to list fields: farmId={}, status={}", farmId, status);
-        if (farmId != null) {
-            return ResponseEntity.ok(fieldService.getFieldsByFarmId(farmId, pageable));
-        }
-        if (status != null) {
-            return ResponseEntity.ok(fieldService.getFieldsByStatus(status, pageable));
+        if (farmId != null || status != null) {
+            return ResponseEntity.ok(fieldService.getFieldsByFilters(farmId, status, pageable));
         }
         return ResponseEntity.ok(fieldService.getAllFields(pageable));
     }
@@ -74,7 +66,6 @@ public class FieldController {
     @GetMapping("/{id}")
     @Operation(summary = "Get field by ID", description = "Fetches details of a specific field plot.")
     public ResponseEntity<FieldResponseDTO> getFieldById(@PathVariable Long id) {
-        log.debug("REST request to get field ID: {}", id);
         return ResponseEntity.ok(fieldService.getFieldById(id));
     }
 
@@ -84,7 +75,6 @@ public class FieldController {
             @RequestParam String query,
             @PageableDefault(page = 0, size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST search fields with query: {}", query);
         return ResponseEntity.ok(fieldService.searchFields(query, pageable));
     }
 
@@ -94,7 +84,6 @@ public class FieldController {
             @PathVariable Long id,
             @Valid @RequestBody FieldRequestDTO requestDTO) {
 
-        log.info("REST request to update field ID: {}", id);
         return ResponseEntity.ok(fieldService.updateField(id, requestDTO));
     }
 
@@ -104,14 +93,12 @@ public class FieldController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
 
-        log.info("REST request to patch field ID: {}", id);
         return ResponseEntity.ok(fieldService.patchField(id, updates));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete field", description = "Removes a field from the database.")
     public ResponseEntity<Void> deleteField(@PathVariable Long id) {
-        log.info("REST request to delete field ID: {}", id);
         fieldService.deleteField(id);
         return ResponseEntity.noContent().build();
     }
@@ -122,7 +109,6 @@ public class FieldController {
             @PathVariable Long id,
             @RequestParam FieldStatus status) {
 
-        log.info("REST request to update status of field {} to {}", id, status);
         return ResponseEntity.ok(fieldService.updateFieldStatus(id, status));
     }
 
@@ -132,7 +118,6 @@ public class FieldController {
             @PathVariable Long id,
             @RequestParam(required = false) Long cropId) {
 
-        log.info("REST request to assign crop {} to field {}", cropId, id);
         return ResponseEntity.ok(fieldService.assignCropToField(id, cropId));
     }
 }

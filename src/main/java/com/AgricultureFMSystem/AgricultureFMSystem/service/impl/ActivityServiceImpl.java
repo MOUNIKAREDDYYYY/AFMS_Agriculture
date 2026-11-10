@@ -6,8 +6,8 @@ import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Activity;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Crop;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Field;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityType;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityType;
 import com.AgricultureFMSystem.AgricultureFMSystem.exception.ResourceNotFoundException;
 import com.AgricultureFMSystem.AgricultureFMSystem.mapper.ActivityMapper;
 import com.AgricultureFMSystem.AgricultureFMSystem.repository.ActivityRepository;
@@ -16,6 +16,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.repository.FieldRepository;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.ActivityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ActivityResponseDTO createActivity(ActivityRequestDTO requestDTO) {
         log.info("Scheduling activity '{}' for field ID {}", requestDTO.getTitle(), requestDTO.getFieldId());
 
@@ -79,28 +81,12 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public PagedResponse<ActivityResponseDTO> getActivitiesByFieldId(Long fieldId, Pageable pageable) {
-        log.debug("Fetching activities for field ID: {}", fieldId);
-        if (!fieldRepository.existsById(fieldId)) {
+    public PagedResponse<ActivityResponseDTO> getActivitiesByFilters(Long fieldId, ActivityStatus status, ActivityType activityType, Pageable pageable) {
+        log.debug("Fetching activities with filters: fieldId={}, status={}, type={}", fieldId, status, activityType);
+        if (fieldId != null && !fieldRepository.existsById(fieldId)) {
             throw new ResourceNotFoundException("Field", "id", fieldId);
         }
-        Page<ActivityResponseDTO> page = activityRepository.findByFieldId(fieldId, pageable)
-                .map(activityMapper::toResponseDTO);
-        return PagedResponse.of(page);
-    }
-
-    @Override
-    public PagedResponse<ActivityResponseDTO> getActivitiesByStatus(ActivityStatus status, Pageable pageable) {
-        log.debug("Fetching activities by status: {}", status);
-        Page<ActivityResponseDTO> page = activityRepository.findByStatus(status, pageable)
-                .map(activityMapper::toResponseDTO);
-        return PagedResponse.of(page);
-    }
-
-    @Override
-    public PagedResponse<ActivityResponseDTO> getActivitiesByType(ActivityType activityType, Pageable pageable) {
-        log.debug("Fetching activities by type: {}", activityType);
-        Page<ActivityResponseDTO> page = activityRepository.findByActivityType(activityType, pageable)
+        Page<ActivityResponseDTO> page = activityRepository.findByFilters(fieldId, status, activityType, pageable)
                 .map(activityMapper::toResponseDTO);
         return PagedResponse.of(page);
     }
@@ -131,6 +117,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ActivityResponseDTO updateActivity(Long id, ActivityRequestDTO requestDTO) {
         log.info("Updating activity ID: {}", id);
         Activity existing = activityRepository.findById(id)
@@ -155,6 +142,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ActivityResponseDTO patchActivity(Long id, Map<String, Object> updates) {
         log.info("Applying partial updates to activity ID: {}", id);
         Activity existing = activityRepository.findById(id)
@@ -162,13 +150,13 @@ public class ActivityServiceImpl implements ActivityService {
 
         updates.forEach((key, value) -> {
             switch (key) {
-                case "title" -> existing.setTitle((String) value);
-                case "activityType" -> existing.setActivityType(ActivityType.valueOf(value.toString()));
-                case "status" -> existing.setStatus(ActivityStatus.valueOf(value.toString()));
-                case "scheduledDate" -> existing.setScheduledDate(LocalDate.parse(value.toString()));
-                case "completionDate" -> existing.setCompletionDate(value != null ? LocalDate.parse(value.toString()) : null);
-                case "assignedTo" -> existing.setAssignedTo((String) value);
-                case "notes" -> existing.setNotes((String) value);
+                case "title" -> existing.setTitle(PatchHelper.requireNonBlankString("title", value));
+                case "activityType" -> existing.setActivityType(PatchHelper.requireEnum("activityType", value, ActivityType.class));
+                case "status" -> existing.setStatus(PatchHelper.requireEnum("status", value, ActivityStatus.class));
+                case "scheduledDate" -> existing.setScheduledDate(PatchHelper.requireLocalDate("scheduledDate", value));
+                case "completionDate" -> existing.setCompletionDate(PatchHelper.optionalLocalDate("completionDate", value));
+                case "assignedTo" -> existing.setAssignedTo(PatchHelper.optionalString("assignedTo", value));
+                case "notes" -> existing.setNotes(PatchHelper.optionalString("notes", value));
             }
         });
 
@@ -178,6 +166,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public void deleteActivity(Long id) {
         log.info("Deleting activity ID: {}", id);
         Activity activity = activityRepository.findById(id)
@@ -187,6 +176,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ActivityResponseDTO completeActivity(Long id, LocalDate completionDate, String notes) {
         log.info("Marking activity ID {} as completed on {}", id, completionDate);
         Activity activity = activityRepository.findById(id)
@@ -204,6 +194,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ActivityResponseDTO updateActivityStatus(Long id, ActivityStatus status) {
         log.info("Setting status of activity {} to {}", id, status);
         Activity activity = activityRepository.findById(id)
@@ -218,6 +209,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public ActivityResponseDTO cancelActivity(Long id) {
         log.info("Cancelling activity ID: {}", id);
         Activity activity = activityRepository.findById(id)

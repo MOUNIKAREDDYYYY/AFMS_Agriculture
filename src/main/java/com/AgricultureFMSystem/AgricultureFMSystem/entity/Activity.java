@@ -1,11 +1,15 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.entity;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityType;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * ============================================================================================
@@ -15,13 +19,17 @@ import java.time.LocalDate;
  * Supports scheduling, tracking in-progress work, and recording completion dates and workers.
  */
 @Entity
-@Table(name = "activities")
+@Table(name = "activities", indexes = {
+        @Index(name = "idx_activities_scheduled_date", columnList = "scheduled_date"),
+        @Index(name = "idx_activities_status", columnList = "status")
+})
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Activity extends BaseEntity {
+public class Activity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,4 +68,12 @@ public class Activity extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "crop_id")
     private Crop crop;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

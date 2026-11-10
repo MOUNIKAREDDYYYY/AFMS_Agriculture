@@ -10,7 +10,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * Agriculture Farm Management System (AFMS)
  * 
  * Scenario:
- * Farmers manage crops, fields, expenses, scheduled farming activities, and harvest records.
+ * Farmers manage crops, fields, expenses, scheduled farming activities, and
+ * harvest records.
  * 
  * Relationships:
  * - Farmer -> Farms (One-to-Many)
@@ -20,11 +21,16 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * - Field/Crop -> Harvests
  * 
  * Key Highlights:
- * - Phase 1: Lombok (@Getter, @Setter, @Builder, @RequiredArgsConstructor), SLF4J logging (@Slf4j)
- * - Phase 2: Spring MVC, REST APIs, Jakarta Validation (@Valid), GlobalExceptionHandler (@RestControllerAdvice)
- * - Phase 3: Spring Data JPA, Hibernate ORM, Relationships, Aggregations, Transactions (@Transactional)
- * - Phase 4: OpenAPI/Swagger Documentation, Scheduler (@Scheduled), HikariCP, Actuator, DTO Pattern
- * - Phase 5: JUnit 5, Mockito Unit Testing
+ * - Phase 1: Lombok (@Getter, @Setter, @Builder, @RequiredArgsConstructor),
+ * SLF4J logging (@Slf4j)
+ * - Phase 2: Spring MVC, REST APIs, Jakarta Validation (@Valid),
+ * GlobalExceptionHandler (@RestControllerAdvice)
+ * - Phase 3: Spring Data JPA, Hibernate ORM, Relationships, Aggregations,
+ * Transactions (@Transactional)
+ * - Phase 4: OpenAPI/Swagger Documentation, Logging, File Handling, HikariCP,
+ * Scheduler, Actuator, DTO Pattern
+ * - Phase 5: Profiles (dev/prod/test), JUnit 5 & Mockito Testing, Caching,
+ * Security (JWT)
  */
 @SpringBootApplication
 public class AgricultureFmSystemApplication {

@@ -1,7 +1,7 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.service;
 
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ExpenseSummaryDTO;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ExpenseCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ExpenseCategory;
 import com.AgricultureFMSystem.AgricultureFMSystem.repository.ExpenseRepository;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.impl.ExpenseServiceImpl;
 import org.junit.jupiter.api.DisplayName;

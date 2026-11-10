@@ -2,7 +2,12 @@ package com.AgricultureFMSystem.AgricultureFMSystem.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,18 +18,21 @@ import java.util.List;
  * Represents a specific agricultural property owned by a Farmer.
  * 
  * Relationships:
- * - Farm -> Farmer: Many-to-One (@ManyToOne) with FetchType.LAZY to prevent N+1 query problems.
+ * - Farm -> Farmer: Many-to-One (@ManyToOne) with FetchType.LAZY to prevent N+1
+ * query problems.
  * - Farm -> Fields: One-to-Many (@OneToMany) with CascadeType.ALL.
- * - Farm -> Expenses: One-to-Many (@OneToMany) for tracking farm-level expenditures.
+ * - Farm -> Expenses: One-to-Many (@OneToMany) for tracking farm-level
+ * expenditures.
  */
 @Entity
 @Table(name = "farms")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Farm extends BaseEntity {
+public class Farm {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,6 +54,7 @@ public class Farm extends BaseEntity {
 
     // One Farm contains Multiple Fields/Plots
     @Builder.Default
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "farm", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Field> fields = new ArrayList<>();
 
@@ -53,6 +62,14 @@ public class Farm extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "farm", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Expense> expenses = new ArrayList<>();
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     public void addField(Field field) {
         fields.add(field);

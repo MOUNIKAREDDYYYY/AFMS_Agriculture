@@ -5,7 +5,6 @@ import com.AgricultureFMSystem.AgricultureFMSystem.service.FileStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,14 +25,13 @@ import java.time.LocalDateTime;
  * ============================================================================================
  * Phase 4: File Handling REST Controller
  * ============================================================================================
- * // Purpose: REST endpoints for:
- * // - Uploading agricultural documents (soil test PDF, farm photos, receipts)
- * // - Downloading / streaming uploaded files
- * // - Exporting Harvest yield records to downloadable CSV
- * // - Exporting Farm expenses to downloadable CSV
+ * Purpose: REST endpoints for:
+ * - Uploading agricultural documents (soil test PDF, farm photos, receipts)
+ * - Downloading / streaming uploaded files
+ * - Exporting Harvest yield records to downloadable CSV
+ * - Exporting Farm expenses to downloadable CSV
  * ============================================================================================
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
@@ -43,16 +41,14 @@ public class FileController {
     private final FileStorageService fileStorageService;
 
     /**
-     * // Upload a document or image (multipart/form-data)
+     * Upload a document or image (multipart/form-data)
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload agricultural document", description = "Uploads soil report, field photo, or receipt as multipart/form-data.")
     public ResponseEntity<FileResponseDTO> uploadFile(@RequestParam("file") MultipartFile file) {
-        log.info("// [FileController] Handling upload for file: {}", file.getOriginalFilename());
-
         String storedFileName = fileStorageService.storeFile(file);
 
-        // // Build download URI pointing to our download endpoint
+        // Build download URI pointing to our download endpoint
         String downloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/files/download/")
                 .path(storedFileName)
@@ -72,12 +68,11 @@ public class FileController {
     }
 
     /**
-     * // Download or stream a stored file
+     * Download or stream a stored file
      */
     @GetMapping("/download/{fileName}")
     @Operation(summary = "Download file", description = "Streams a stored document by fileName.")
     public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) {
-        log.info("// [FileController] Handling download for file: {}", fileName);
         Resource resource = fileStorageService.loadFileAsResource(fileName);
 
         return ResponseEntity.ok()
@@ -87,12 +82,11 @@ public class FileController {
     }
 
     /**
-     * // Export all Harvest records as a downloadable CSV file
+     * Export all Harvest records as a downloadable CSV file
      */
     @GetMapping("/export/harvests-csv")
     @Operation(summary = "Export harvest records to CSV", description = "Generates and streams a CSV file of all harvest yields and revenue.")
     public ResponseEntity<byte[]> exportHarvestsCsv() {
-        log.info("// [FileController] Exporting harvest records to CSV");
         byte[] csvData = fileStorageService.exportHarvestsToCsv();
 
         return ResponseEntity.ok()
@@ -102,12 +96,11 @@ public class FileController {
     }
 
     /**
-     * // Export Farm expenses as a downloadable CSV file
+     * Export Farm expenses as a downloadable CSV file
      */
     @GetMapping("/export/expenses-csv")
     @Operation(summary = "Export farm expenses to CSV", description = "Generates and streams a CSV file of farm expenditures.")
     public ResponseEntity<byte[]> exportExpensesCsv(@RequestParam(required = false) Long farmId) {
-        log.info("// [FileController] Exporting expenses to CSV (farmId: {})", farmId);
         byte[] csvData = fileStorageService.exportExpensesToCsv(farmId);
 
         String fileName = (farmId != null) ? "expenses_farm_" + farmId + ".csv" : "all_farm_expenses.csv";

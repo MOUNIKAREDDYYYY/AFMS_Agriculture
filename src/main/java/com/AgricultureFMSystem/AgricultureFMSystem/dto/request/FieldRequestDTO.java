@@ -1,6 +1,6 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.dto.request;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.FieldStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.FieldStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

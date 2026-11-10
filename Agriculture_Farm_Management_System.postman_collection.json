@@ -5,10 +5,25 @@
     "description": "Complete Postman collection for Agriculture Farm Management System including Authentication, Farmers, Farms, Fields, Crops, Crop Plans, Activities, Expenses, Harvests, and Reports.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwtToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
       "type": "string"
     }
   ],
@@ -18,7 +33,20 @@
       "item": [
         {
           "name": "POST - Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.token) { pm.collectionVariables.set('jwtToken', json.token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" }
@@ -37,6 +65,7 @@
         {
           "name": "POST - Register User",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" }
@@ -57,12 +86,9 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/auth/me?username=admin",
+              "raw": "{{baseUrl}}/api/auth/me",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "me"],
-              "query": [
-                { "key": "username", "value": "admin" }
-              ]
+              "path": ["api", "auth", "me"]
             }
           }
         }
@@ -595,6 +621,22 @@
           }
         },
         {
+          "name": "GET - Search Crop Plans",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/crop-plans/search?query=Wheat&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crop-plans", "search"],
+              "query": [
+                { "key": "query", "value": "Wheat" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
           "name": "POST - Approve Crop Plan",
           "request": {
             "method": "POST",
@@ -893,6 +935,22 @@
           }
         },
         {
+          "name": "GET - Search Harvests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/harvests/search?query=Grade&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "harvests", "search"],
+              "query": [
+                { "key": "query", "value": "Grade" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
           "name": "GET - Harvest Yield & Revenue Report by Crop",
           "request": {
             "method": "GET",
@@ -1152,9 +1210,9 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/files/download/sample_soil_report.txt",
+              "raw": "{{baseUrl}}/api/files/download/8c5f9b17_download.jfif",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "download", "sample_soil_report.txt"]
+              "path": ["api", "files", "download", "8c5f9b17_download.jfif"]
             }
           }
         }

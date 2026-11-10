@@ -12,6 +12,8 @@ import com.AgricultureFMSystem.AgricultureFMSystem.repository.FarmerRepository;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.FarmService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ public class FarmServiceImpl implements FarmService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"farms", "farmers", "fieldHistory"}, allEntries = true)
     public FarmResponseDTO createFarm(FarmRequestDTO requestDTO) {
         log.info("Creating new farm '{}' for farmer ID {}", requestDTO.getName(), requestDTO.getFarmerId());
 
@@ -50,6 +53,7 @@ public class FarmServiceImpl implements FarmService {
     }
 
     @Override
+    @Cacheable(value = "farms", key = "#id")
     public FarmResponseDTO getFarmById(Long id) {
         log.debug("Fetching farm by ID: {}", id);
         Farm farm = farmRepository.findById(id)
@@ -86,6 +90,7 @@ public class FarmServiceImpl implements FarmService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"farms", "farmers", "fieldHistory"}, allEntries = true)
     public FarmResponseDTO updateFarm(Long id, FarmRequestDTO requestDTO) {
         log.info("Updating farm with ID: {}", id);
         Farm existing = farmRepository.findById(id)
@@ -104,6 +109,7 @@ public class FarmServiceImpl implements FarmService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"farms", "farmers", "fieldHistory"}, allEntries = true)
     public FarmResponseDTO patchFarm(Long id, Map<String, Object> updates) {
         log.info("Applying partial updates to farm ID: {}", id);
         Farm existing = farmRepository.findById(id)
@@ -111,11 +117,11 @@ public class FarmServiceImpl implements FarmService {
 
         updates.forEach((key, value) -> {
             switch (key) {
-                case "name" -> existing.setName((String) value);
-                case "location" -> existing.setLocation((String) value);
-                case "totalAreaInAcres" -> existing.setTotalAreaInAcres(Double.parseDouble(value.toString()));
+                case "name" -> existing.setName(PatchHelper.requireNonBlankString("name", value));
+                case "location" -> existing.setLocation(PatchHelper.requireNonBlankString("location", value));
+                case "totalAreaInAcres" -> existing.setTotalAreaInAcres(PatchHelper.requireDouble("totalAreaInAcres", value, true));
                 case "farmerId" -> {
-                    Long farmerId = Long.parseLong(value.toString());
+                    Long farmerId = PatchHelper.requireLong("farmerId", value);
                     Farmer farmer = farmerRepository.findById(farmerId)
                             .orElseThrow(() -> new ResourceNotFoundException("Farmer", "id", farmerId));
                     existing.setFarmer(farmer);
@@ -129,6 +135,7 @@ public class FarmServiceImpl implements FarmService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"farms", "farmers", "fieldHistory"}, allEntries = true)
     public void deleteFarm(Long id) {
         log.info("Deleting farm with ID: {}", id);
         Farm farm = farmRepository.findById(id)

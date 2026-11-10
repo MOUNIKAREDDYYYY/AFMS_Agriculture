@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
  * ============================================================================================
  * Phase 4: Spring Boot Actuator Custom Health Indicator
  * ============================================================================================
- * // Purpose: Custom health check monitoring the agricultural ecosystem vitality and database availability.
- * // Checks total farmers, active farms, crop catalog, and cultivated fields.
- * // Returns UP if core entities exist and queries succeed; DOWN if database connectivity fails.
+ * Purpose: Custom health check monitoring the agricultural ecosystem vitality and database availability.
+ * Checks total farmers, active farms, crop catalog, and cultivated fields.
+ * Returns UP if core entities exist and queries succeed; DOWN if database connectivity fails.
  * ============================================================================================
  */
 @Slf4j
@@ -24,25 +24,25 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AgriculturalHealthIndicator implements HealthIndicator {
 
-    // // Inject repositories to verify database connectivity and fetch entity metrics
+    // Inject repositories to verify database connectivity and fetch entity metrics
     private final FarmerRepository farmerRepository;
     private final FarmRepository farmRepository;
     private final FieldRepository fieldRepository;
     private final CropRepository cropRepository;
 
     /**
-     * // Health evaluation method invoked by Spring Boot Actuator (/actuator/health)
+     * Health evaluation method invoked by Spring Boot Actuator (/actuator/health)
      */
     @Override
     public Health health() {
         try {
-            // // Perform count queries to test DB responsiveness and collect telemetry
+            // Perform count queries to test DB responsiveness and collect telemetry
             long farmerCount = farmerRepository.count();
             long farmCount = farmRepository.count();
             long fieldCount = fieldRepository.count();
             long cropCount = cropRepository.count();
 
-            // // Determine status: If database responds successfully, return status UP with details
+            // Determine status: If database responds successfully, return status UP with details
             return Health.up()
                     .withDetail("service", "Agriculture Farm Management System (AFMS)")
                     .withDetail("databaseStatus", "ONLINE")
@@ -54,8 +54,8 @@ public class AgriculturalHealthIndicator implements HealthIndicator {
                     .build();
 
         } catch (Exception ex) {
-            // // In case of database error or network failure, report status DOWN with error details
-            log.error("// Actuator Health Check Failed: Unable to connect to Agriculture database: {}", ex.getMessage());
+            // In case of database error or network failure, report status DOWN with error details
+            log.error("[Actuator] Health check failed: Unable to connect to Agriculture database: {}", ex.getMessage());
             return Health.down()
                     .withDetail("service", "Agriculture Farm Management System (AFMS)")
                     .withDetail("databaseStatus", "OFFLINE")

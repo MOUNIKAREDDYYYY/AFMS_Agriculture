@@ -1,8 +1,8 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.repository;
 
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Crop;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropCategory;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,9 +18,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CropRepository extends JpaRepository<Crop, Long> {
 
-    Page<Crop> findByCategory(CropCategory category, Pageable pageable);
-
-    Page<Crop> findBySeason(CropSeason season, Pageable pageable);
+    @Query("SELECT c FROM Crop c WHERE " +
+           "(:category IS NULL OR c.category = :category) AND " +
+           "(:season IS NULL OR c.season = :season)")
+    Page<Crop> findByFilters(@Param("category") CropCategory category,
+                             @Param("season") CropSeason season,
+                             Pageable pageable);
 
     @Query("SELECT c FROM Crop c WHERE " +
            "LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

@@ -6,8 +6,8 @@ import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Crop;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.CropPlan;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Field;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropPlanStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropPlanStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import com.AgricultureFMSystem.AgricultureFMSystem.exception.BadRequestException;
 import com.AgricultureFMSystem.AgricultureFMSystem.exception.ResourceNotFoundException;
 import com.AgricultureFMSystem.AgricultureFMSystem.mapper.CropPlanMapper;
@@ -17,6 +17,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.repository.FieldRepository;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.CropPlanService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,12 +44,11 @@ public class CropPlanServiceImpl implements CropPlanService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public CropPlanResponseDTO createCropPlan(CropPlanRequestDTO requestDTO) {
         log.info("Creating crop plan for field ID {} and crop ID {}", requestDTO.getFieldId(), requestDTO.getCropId());
 
-        if (requestDTO.getEstimatedHarvestDate().isBefore(requestDTO.getPlannedStartDate())) {
-            throw new BadRequestException("Estimated harvest date cannot be before planned start date");
-        }
+        validateDates(requestDTO.getPlannedStartDate(), requestDTO.getEstimatedHarvestDate());
 
         Field field = fieldRepository.findById(requestDTO.getFieldId())
                 .orElseThrow(() -> new ResourceNotFoundException("Field", "id", requestDTO.getFieldId()));
@@ -78,28 +78,20 @@ public class CropPlanServiceImpl implements CropPlanService {
     }
 
     @Override
-    public PagedResponse<CropPlanResponseDTO> getCropPlansByFieldId(Long fieldId, Pageable pageable) {
-        log.debug("Fetching crop plans for field ID: {}", fieldId);
-        if (!fieldRepository.existsById(fieldId)) {
+    public PagedResponse<CropPlanResponseDTO> getCropPlansByFilters(Long fieldId, CropPlanStatus status, CropSeason season, Pageable pageable) {
+        log.debug("Fetching crop plans with filters: fieldId={}, status={}, season={}", fieldId, status, season);
+        if (fieldId != null && !fieldRepository.existsById(fieldId)) {
             throw new ResourceNotFoundException("Field", "id", fieldId);
         }
-        Page<CropPlanResponseDTO> page = cropPlanRepository.findByFieldId(fieldId, pageable)
+        Page<CropPlanResponseDTO> page = cropPlanRepository.findByFilters(fieldId, status, season, pageable)
                 .map(cropPlanMapper::toResponseDTO);
         return PagedResponse.of(page);
     }
 
     @Override
-    public PagedResponse<CropPlanResponseDTO> getCropPlansByStatus(CropPlanStatus status, Pageable pageable) {
-        log.debug("Fetching crop plans by status: {}", status);
-        Page<CropPlanResponseDTO> page = cropPlanRepository.findByStatus(status, pageable)
-                .map(cropPlanMapper::toResponseDTO);
-        return PagedResponse.of(page);
-    }
-
-    @Override
-    public PagedResponse<CropPlanResponseDTO> getCropPlansBySeason(CropSeason season, Pageable pageable) {
-        log.debug("Fetching crop plans by season: {}", season);
-        Page<CropPlanResponseDTO> page = cropPlanRepository.findBySeason(season, pageable)
+    public PagedResponse<CropPlanResponseDTO> searchCropPlans(String query, Pageable pageable) {
+        log.debug("Searching crop plans with query: '{}'", query);
+        Page<CropPlanResponseDTO> page = cropPlanRepository.searchCropPlans(query, pageable)
                 .map(cropPlanMapper::toResponseDTO);
         return PagedResponse.of(page);
     }
@@ -114,8 +106,11 @@ public class CropPlanServiceImpl implements CropPlanService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public CropPlanResponseDTO updateCropPlan(Long id, CropPlanRequestDTO requestDTO) {
         log.info("Updating crop plan ID: {}", id);
+        validateDates(requestDTO.getPlannedStartDate(), requestDTO.getEstimatedHarvestDate());
+
         CropPlan existing = cropPlanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("CropPlan", "id", id));
 
@@ -138,6 +133,7 @@ public class CropPlanServiceImpl implements CropPlanService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public CropPlanResponseDTO patchCropPlan(Long id, Map<String, Object> updates) {
         log.info("Applying partial updates to crop plan ID: {}", id);
         CropPlan existing = cropPlanRepository.findById(id)
@@ -145,15 +141,20 @@ public class CropPlanServiceImpl implements CropPlanService {
 
         updates.forEach((key, value) -> {
             switch (key) {
-                case "season" -> existing.setSeason(CropSeason.valueOf(value.toString()));
-                case "plannedStartDate" -> existing.setPlannedStartDate(LocalDate.parse(value.toString()));
-                case "estimatedHarvestDate" -> existing.setEstimatedHarvestDate(LocalDate.parse(value.toString()));
-                case "expectedYieldQuantity" -> existing.setExpectedYieldQuantity(Double.parseDouble(value.toString()));
-                case "yieldUnit" -> existing.setYieldUnit((String) value);
-                case "status" -> existing.setStatus(CropPlanStatus.valueOf(value.toString()));
-                case "notes" -> existing.setNotes((String) value);
+                case "season" -> existing.setSeason(PatchHelper.requireEnum("season", value, CropSeason.class));
+                case "plannedStartDate" -> existing.setPlannedStartDate(PatchHelper.requireLocalDate("plannedStartDate", value));
+                case "estimatedHarvestDate" -> existing.setEstimatedHarvestDate(PatchHelper.requireLocalDate("estimatedHarvestDate", value));
+                case "expectedYieldQuantity" -> existing.setExpectedYieldQuantity(
+                        value == null ? null : PatchHelper.requireDouble("expectedYieldQuantity", value, true));
+                case "yieldUnit" -> existing.setYieldUnit(PatchHelper.optionalString("yieldUnit", value));
+                case "estimatedBudget" -> existing.setEstimatedBudget(
+                        value == null ? null : PatchHelper.requireBigDecimal("estimatedBudget", value, true));
+                case "status" -> existing.setStatus(PatchHelper.requireEnum("status", value, CropPlanStatus.class));
+                case "notes" -> existing.setNotes(PatchHelper.optionalString("notes", value));
             }
         });
+
+        validateDates(existing.getPlannedStartDate(), existing.getEstimatedHarvestDate());
 
         CropPlan saved = cropPlanRepository.save(existing);
         return cropPlanMapper.toResponseDTO(saved);
@@ -161,6 +162,7 @@ public class CropPlanServiceImpl implements CropPlanService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public void deleteCropPlan(Long id) {
         log.info("Deleting crop plan ID: {}", id);
         CropPlan plan = cropPlanRepository.findById(id)
@@ -170,6 +172,7 @@ public class CropPlanServiceImpl implements CropPlanService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public CropPlanResponseDTO approveCropPlan(Long id) {
         log.info("Approving crop plan ID: {}", id);
         CropPlan plan = cropPlanRepository.findById(id)
@@ -181,6 +184,7 @@ public class CropPlanServiceImpl implements CropPlanService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public CropPlanResponseDTO updateCropPlanStatus(Long id, CropPlanStatus status) {
         log.info("Setting status of crop plan {} to {}", id, status);
         CropPlan plan = cropPlanRepository.findById(id)
@@ -192,6 +196,7 @@ public class CropPlanServiceImpl implements CropPlanService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public CropPlanResponseDTO cancelCropPlan(Long id) {
         log.info("Cancelling crop plan ID: {}", id);
         CropPlan plan = cropPlanRepository.findById(id)
@@ -199,5 +204,11 @@ public class CropPlanServiceImpl implements CropPlanService {
         plan.setStatus(CropPlanStatus.CANCELLED);
         CropPlan saved = cropPlanRepository.save(plan);
         return cropPlanMapper.toResponseDTO(saved);
+    }
+
+    private void validateDates(LocalDate startDate, LocalDate harvestDate) {
+        if (startDate != null && harvestDate != null && harvestDate.isBefore(startDate)) {
+            throw new BadRequestException("Estimated harvest date cannot be before planned start date");
+        }
     }
 }

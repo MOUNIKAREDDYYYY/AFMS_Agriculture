@@ -1,4 +1,4 @@
-package com.AgricultureFMSystem.AgricultureFMSystem.entity.enums;
+package com.AgricultureFMSystem.AgricultureFMSystem.enums;
 
 /**
  * Agronomic planting seasons.

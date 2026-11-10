@@ -23,12 +23,12 @@ import java.util.Map;
  * ============================================================================================
  * Phase 4: Spring Boot Actuator Custom Business Endpoint (@Endpoint)
  * ============================================================================================
- * // Purpose: Custom Actuator management endpoint exposed at /actuator/agriculture.
- * // Provides DevOps, operations, and agronomy leads with an instant snapshot of farm operations:
- * // - Farm & Farmer counts
- * // - Crop planning metrics
- * // - Total expenditure and harvest revenue
- * // - Overall farm operational status
+ * Purpose: Custom Actuator management endpoint exposed at /actuator/agriculture.
+ * Provides DevOps, operations, and agronomy leads with an instant snapshot of farm operations:
+ * - Farm & Farmer counts
+ * - Crop planning metrics
+ * - Total expenditure and harvest revenue
+ * - Overall farm operational status
  * ============================================================================================
  */
 @Slf4j
@@ -37,7 +37,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AgriculturalCustomEndpoint {
 
-    // // Inject repositories to gather operational metrics for the custom endpoint
+    // Inject repositories to gather operational metrics for the custom endpoint
     private final FarmerRepository farmerRepository;
     private final FarmRepository farmRepository;
     private final FieldRepository fieldRepository;
@@ -48,22 +48,22 @@ public class AgriculturalCustomEndpoint {
     private final HarvestRepository harvestRepository;
 
     /**
-     * // HTTP GET operation exposed at: GET /actuator/agriculture
-     * // Returns JSON summary of live farm operations and key business indicators
+     * HTTP GET operation exposed at: GET /actuator/agriculture
+     * Returns JSON summary of live farm operations and key business indicators
      */
     @ReadOperation
     public Map<String, Object> getAgriculturalStatus() {
-        log.info("// Actuator Endpoint: Fetching live /actuator/agriculture operational status");
+        log.info("[Actuator] Fetching live /actuator/agriculture operational status");
 
         Map<String, Object> status = new LinkedHashMap<>();
 
-        // // 1. System Metadata & Timestamp
+        // 1. System Metadata & Timestamp
         status.put("systemName", "Agriculture Farm Management System (AFMS)");
         status.put("actuatorModule", "Agricultural Operations Endpoint");
         status.put("timestamp", LocalDateTime.now());
         status.put("status", "HEALTHY");
 
-        // // 2. Agricultural Infrastructure Snapshot
+        // 2. Agricultural Infrastructure Snapshot
         Map<String, Object> infrastructure = new LinkedHashMap<>();
         infrastructure.put("totalFarmers", farmerRepository.count());
         infrastructure.put("totalFarms", farmRepository.count());
@@ -71,21 +71,21 @@ public class AgriculturalCustomEndpoint {
         infrastructure.put("totalCropsInCatalog", cropRepository.count());
         status.put("infrastructure", infrastructure);
 
-        // // 3. Field Operations & Crop Planning
+        // 3. Field Operations & Crop Planning
         Map<String, Object> operations = new LinkedHashMap<>();
         operations.put("activeCropPlans", cropPlanRepository.count());
         operations.put("totalActivitiesLogged", activityRepository.count());
         operations.put("totalHarvestEvents", harvestRepository.count());
         status.put("operations", operations);
 
-        // // 4. Financial Health (Aggregate Expenditure vs Revenue)
+        // 4. Financial Health (Aggregate Expenditure vs Revenue)
         Map<String, Object> financials = new LinkedHashMap<>();
         BigDecimal totalRevenue = harvestRepository.calculateTotalRevenueAcrossAllFarms();
         financials.put("totalHarvestRevenueAcrossAllFarms", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
         financials.put("currency", "INR (₹)");
         status.put("financials", financials);
 
-        // // 5. Quick Health Summary
+        // 5. Quick Health Summary
         status.put("databaseConnectivity", "OK");
         status.put("schedulerStatus", "ACTIVE (Hourly Task Execution)");
 

@@ -3,15 +3,14 @@ package com.AgricultureFMSystem.AgricultureFMSystem.controller;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.ActivityRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ActivityResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityType;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityType;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.ActivityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -42,7 +41,6 @@ import java.util.Map;
  * - PATCH  /api/activities/{id}/status     -> Update activity status
  * - POST   /api/activities/{id}/cancel     -> Cancel activity
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/activities")
 @RequiredArgsConstructor
@@ -54,9 +52,7 @@ public class ActivityController {
     @PostMapping
     @Operation(summary = "Schedule field activity", description = "Schedules an agricultural operation on a field.")
     public ResponseEntity<ActivityResponseDTO> createActivity(@Valid @RequestBody ActivityRequestDTO requestDTO) {
-        log.info("REST request to schedule activity: {}", requestDTO.getTitle());
-        ActivityResponseDTO response = activityService.createActivity(requestDTO);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(activityService.createActivity(requestDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -70,15 +66,8 @@ public class ActivityController {
             @RequestParam(required = false) ActivityType type,
             @PageableDefault(page = 0, size = 10, sort = "scheduledDate", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST request to list activities: fieldId={}, status={}, type={}", fieldId, status, type);
-        if (fieldId != null) {
-            return ResponseEntity.ok(activityService.getActivitiesByFieldId(fieldId, pageable));
-        }
-        if (status != null) {
-            return ResponseEntity.ok(activityService.getActivitiesByStatus(status, pageable));
-        }
-        if (type != null) {
-            return ResponseEntity.ok(activityService.getActivitiesByType(type, pageable));
+        if (fieldId != null || status != null || type != null) {
+            return ResponseEntity.ok(activityService.getActivitiesByFilters(fieldId, status, type, pageable));
         }
         return ResponseEntity.ok(activityService.getAllActivities(pageable));
     }
@@ -86,7 +75,6 @@ public class ActivityController {
     @GetMapping("/{id}")
     @Operation(summary = "Get activity by ID", description = "Fetches activity details by ID.")
     public ResponseEntity<ActivityResponseDTO> getActivityById(@PathVariable Long id) {
-        log.debug("REST request to get activity ID: {}", id);
         return ResponseEntity.ok(activityService.getActivityById(id));
     }
 
@@ -96,14 +84,12 @@ public class ActivityController {
             @RequestParam String query,
             @PageableDefault(page = 0, size = 10, sort = "scheduledDate", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST search activities with query: {}", query);
         return ResponseEntity.ok(activityService.searchActivities(query, pageable));
     }
 
     @GetMapping("/pending")
     @Operation(summary = "List pending activities", description = "Retrieves all activities in PLANNED or IN_PROGRESS status.")
     public ResponseEntity<List<ActivityResponseDTO>> getPendingActivities() {
-        log.debug("REST request to retrieve pending activities");
         return ResponseEntity.ok(activityService.getPendingActivities());
     }
 
@@ -114,7 +100,6 @@ public class ActivityController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @PageableDefault(page = 0, size = 10, sort = "scheduledDate", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST request for activities between {} and {}", startDate, endDate);
         return ResponseEntity.ok(activityService.getActivitiesByDateRange(startDate, endDate, pageable));
     }
 
@@ -124,7 +109,6 @@ public class ActivityController {
             @PathVariable Long id,
             @Valid @RequestBody ActivityRequestDTO requestDTO) {
 
-        log.info("REST request to update activity ID: {}", id);
         return ResponseEntity.ok(activityService.updateActivity(id, requestDTO));
     }
 
@@ -134,14 +118,12 @@ public class ActivityController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
 
-        log.info("REST request to patch activity ID: {}", id);
         return ResponseEntity.ok(activityService.patchActivity(id, updates));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete activity", description = "Deletes an activity from the schedule.")
     public ResponseEntity<Void> deleteActivity(@PathVariable Long id) {
-        log.info("REST request to delete activity ID: {}", id);
         activityService.deleteActivity(id);
         return ResponseEntity.noContent().build();
     }
@@ -153,7 +135,6 @@ public class ActivityController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate completionDate,
             @RequestParam(required = false) String notes) {
 
-        log.info("REST request to complete activity ID: {}", id);
         return ResponseEntity.ok(activityService.completeActivity(id, completionDate, notes));
     }
 
@@ -163,14 +144,12 @@ public class ActivityController {
             @PathVariable Long id,
             @RequestParam ActivityStatus status) {
 
-        log.info("REST request to update activity {} status to {}", id, status);
         return ResponseEntity.ok(activityService.updateActivityStatus(id, status));
     }
 
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Cancel activity", description = "Business API: Marks an activity as CANCELLED.")
     public ResponseEntity<ActivityResponseDTO> cancelActivity(@PathVariable Long id) {
-        log.info("REST request to cancel activity ID: {}", id);
         return ResponseEntity.ok(activityService.cancelActivity(id));
     }
 }

@@ -1,7 +1,7 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.config;
 
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.*;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.*;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.*;
 import com.AgricultureFMSystem.AgricultureFMSystem.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

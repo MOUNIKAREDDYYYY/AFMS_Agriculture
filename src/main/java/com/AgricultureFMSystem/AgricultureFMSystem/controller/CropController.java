@@ -3,15 +3,14 @@ package com.AgricultureFMSystem.AgricultureFMSystem.controller;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.CropRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.CropResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropCategory;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.CropService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -34,7 +33,6 @@ import java.util.Map;
  * - DELETE /api/crops/{id}   -> Delete crop
  * - GET    /api/crops/search -> Search crops by name or variety
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/crops")
 @RequiredArgsConstructor
@@ -46,9 +44,7 @@ public class CropController {
     @PostMapping
     @Operation(summary = "Register a new crop", description = "Adds a crop with growth duration and climate requirements.")
     public ResponseEntity<CropResponseDTO> createCrop(@Valid @RequestBody CropRequestDTO requestDTO) {
-        log.info("REST request to create crop: {}", requestDTO.getName());
-        CropResponseDTO response = cropService.createCrop(requestDTO);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(cropService.createCrop(requestDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -60,12 +56,8 @@ public class CropController {
             @RequestParam(required = false) CropSeason season,
             @PageableDefault(page = 0, size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST request to list crops: category={}, season={}", category, season);
-        if (category != null) {
-            return ResponseEntity.ok(cropService.getCropsByCategory(category, pageable));
-        }
-        if (season != null) {
-            return ResponseEntity.ok(cropService.getCropsBySeason(season, pageable));
+        if (category != null || season != null) {
+            return ResponseEntity.ok(cropService.getCropsByFilters(category, season, pageable));
         }
         return ResponseEntity.ok(cropService.getAllCrops(pageable));
     }
@@ -73,7 +65,6 @@ public class CropController {
     @GetMapping("/{id}")
     @Operation(summary = "Get crop by ID", description = "Fetches a crop specification by its unique identifier.")
     public ResponseEntity<CropResponseDTO> getCropById(@PathVariable Long id) {
-        log.debug("REST request to get crop ID: {}", id);
         return ResponseEntity.ok(cropService.getCropById(id));
     }
 
@@ -83,7 +74,6 @@ public class CropController {
             @RequestParam String query,
             @PageableDefault(page = 0, size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST search crops with query: {}", query);
         return ResponseEntity.ok(cropService.searchCrops(query, pageable));
     }
 
@@ -93,7 +83,6 @@ public class CropController {
             @PathVariable Long id,
             @Valid @RequestBody CropRequestDTO requestDTO) {
 
-        log.info("REST request to update crop ID: {}", id);
         return ResponseEntity.ok(cropService.updateCrop(id, requestDTO));
     }
 
@@ -103,14 +92,12 @@ public class CropController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
 
-        log.info("REST request to patch crop ID: {}", id);
         return ResponseEntity.ok(cropService.patchCrop(id, updates));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete crop", description = "Deletes a crop specification.")
     public ResponseEntity<Void> deleteCrop(@PathVariable Long id) {
-        log.info("REST request to delete crop ID: {}", id);
         cropService.deleteCrop(id);
         return ResponseEntity.noContent().build();
     }

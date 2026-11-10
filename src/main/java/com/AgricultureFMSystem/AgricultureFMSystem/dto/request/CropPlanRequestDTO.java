@@ -1,7 +1,7 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.dto.request;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropPlanStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropPlanStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;

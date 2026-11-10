@@ -3,8 +3,8 @@ package com.AgricultureFMSystem.AgricultureFMSystem.service;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.ActivityRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ActivityResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityType;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityType;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
@@ -24,11 +24,7 @@ public interface ActivityService {
 
     PagedResponse<ActivityResponseDTO> getAllActivities(Pageable pageable);
 
-    PagedResponse<ActivityResponseDTO> getActivitiesByFieldId(Long fieldId, Pageable pageable);
-
-    PagedResponse<ActivityResponseDTO> getActivitiesByStatus(ActivityStatus status, Pageable pageable);
-
-    PagedResponse<ActivityResponseDTO> getActivitiesByType(ActivityType activityType, Pageable pageable);
+    PagedResponse<ActivityResponseDTO> getActivitiesByFilters(Long fieldId, ActivityStatus status, ActivityType activityType, Pageable pageable);
 
     PagedResponse<ActivityResponseDTO> getActivitiesByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable);
 

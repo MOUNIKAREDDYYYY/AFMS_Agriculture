@@ -2,9 +2,13 @@ package com.AgricultureFMSystem.AgricultureFMSystem.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * ============================================================================================
@@ -14,13 +18,16 @@ import java.time.LocalDate;
  * Includes financial metrics (unit price, total revenue) for yield reporting and profitability calculations.
  */
 @Entity
-@Table(name = "harvests")
+@Table(name = "harvests", indexes = {
+        @Index(name = "idx_harvests_harvest_date", columnList = "harvest_date")
+})
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Harvest extends BaseEntity {
+public class Harvest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,4 +66,12 @@ public class Harvest extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "crop_id", nullable = false)
     private Crop crop;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

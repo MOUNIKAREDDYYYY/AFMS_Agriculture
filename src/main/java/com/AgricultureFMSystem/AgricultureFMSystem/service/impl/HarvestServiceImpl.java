@@ -15,6 +15,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.repository.HarvestRepository;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.HarvestService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public HarvestResponseDTO recordHarvest(HarvestRequestDTO requestDTO) {
         log.info("Recording harvest of quantity {} {} for field ID {}",
                 requestDTO.getQuantity(), requestDTO.getUnit(), requestDTO.getFieldId());
@@ -75,23 +77,23 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    public PagedResponse<HarvestResponseDTO> getHarvestsByFieldId(Long fieldId, Pageable pageable) {
-        log.debug("Fetching harvests for field ID: {}", fieldId);
-        if (!fieldRepository.existsById(fieldId)) {
+    public PagedResponse<HarvestResponseDTO> getHarvestsByFilters(Long fieldId, Long cropId, Pageable pageable) {
+        log.debug("Fetching harvests with filters: fieldId={}, cropId={}", fieldId, cropId);
+        if (fieldId != null && !fieldRepository.existsById(fieldId)) {
             throw new ResourceNotFoundException("Field", "id", fieldId);
         }
-        Page<HarvestResponseDTO> page = harvestRepository.findByFieldId(fieldId, pageable)
+        if (cropId != null && !cropRepository.existsById(cropId)) {
+            throw new ResourceNotFoundException("Crop", "id", cropId);
+        }
+        Page<HarvestResponseDTO> page = harvestRepository.findByFilters(fieldId, cropId, pageable)
                 .map(harvestMapper::toResponseDTO);
         return PagedResponse.of(page);
     }
 
     @Override
-    public PagedResponse<HarvestResponseDTO> getHarvestsByCropId(Long cropId, Pageable pageable) {
-        log.debug("Fetching harvests for crop ID: {}", cropId);
-        if (!cropRepository.existsById(cropId)) {
-            throw new ResourceNotFoundException("Crop", "id", cropId);
-        }
-        Page<HarvestResponseDTO> page = harvestRepository.findByCropId(cropId, pageable)
+    public PagedResponse<HarvestResponseDTO> searchHarvests(String query, Pageable pageable) {
+        log.debug("Searching harvests with query: '{}'", query);
+        Page<HarvestResponseDTO> page = harvestRepository.searchHarvests(query, pageable)
                 .map(harvestMapper::toResponseDTO);
         return PagedResponse.of(page);
     }
@@ -106,6 +108,7 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public HarvestResponseDTO updateHarvest(Long id, HarvestRequestDTO requestDTO) {
         log.info("Updating harvest ID: {}", id);
         Harvest existing = harvestRepository.findById(id)
@@ -130,6 +133,7 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public HarvestResponseDTO patchHarvest(Long id, Map<String, Object> updates) {
         log.info("Applying partial updates to harvest ID: {}", id);
         Harvest existing = harvestRepository.findById(id)
@@ -137,14 +141,16 @@ public class HarvestServiceImpl implements HarvestService {
 
         updates.forEach((key, value) -> {
             switch (key) {
-                case "harvestDate" -> existing.setHarvestDate(LocalDate.parse(value.toString()));
-                case "quantity" -> existing.setQuantity(Double.parseDouble(value.toString()));
-                case "unit" -> existing.setUnit((String) value);
-                case "qualityGrade" -> existing.setQualityGrade((String) value);
-                case "unitPrice" -> existing.setUnitPrice(new BigDecimal(value.toString()));
-                case "totalRevenue" -> existing.setTotalRevenue(new BigDecimal(value.toString()));
-                case "storageLocation" -> existing.setStorageLocation((String) value);
-                case "notes" -> existing.setNotes((String) value);
+                case "harvestDate" -> existing.setHarvestDate(PatchHelper.requireLocalDate("harvestDate", value));
+                case "quantity" -> existing.setQuantity(PatchHelper.requireDouble("quantity", value, true));
+                case "unit" -> existing.setUnit(PatchHelper.requireNonBlankString("unit", value));
+                case "qualityGrade" -> existing.setQualityGrade(PatchHelper.optionalString("qualityGrade", value));
+                case "unitPrice" -> existing.setUnitPrice(
+                        value == null ? null : PatchHelper.requireBigDecimal("unitPrice", value, true));
+                case "totalRevenue" -> existing.setTotalRevenue(
+                        value == null ? null : PatchHelper.requireBigDecimal("totalRevenue", value, false));
+                case "storageLocation" -> existing.setStorageLocation(PatchHelper.optionalString("storageLocation", value));
+                case "notes" -> existing.setNotes(PatchHelper.optionalString("notes", value));
             }
         });
 
@@ -154,6 +160,7 @@ public class HarvestServiceImpl implements HarvestService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public void deleteHarvest(Long id) {
         log.info("Deleting harvest ID: {}", id);
         Harvest harvest = harvestRepository.findById(id)

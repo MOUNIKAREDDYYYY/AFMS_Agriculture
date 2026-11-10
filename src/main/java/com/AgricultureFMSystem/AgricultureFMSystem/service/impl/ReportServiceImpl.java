@@ -2,10 +2,11 @@ package com.AgricultureFMSystem.AgricultureFMSystem.service.impl;
 
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.FarmFinancialSummaryDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.FarmerFinancialSummaryDTO;
+import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.FieldHistoryResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Farm;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Farmer;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Field;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityStatus;
 import com.AgricultureFMSystem.AgricultureFMSystem.exception.ResourceNotFoundException;
 import com.AgricultureFMSystem.AgricultureFMSystem.mapper.ActivityMapper;
 import com.AgricultureFMSystem.AgricultureFMSystem.mapper.CropPlanMapper;
@@ -15,6 +16,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.repository.*;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,11 +24,10 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * ============================================================================================
- * Phase 3 & 4: Report Service Implementation (Financial & Field History Reporting)
- * ============================================================================================
+ * Generates single-entity and batch-aggregated financial and field history reports.
  */
 @Slf4j
 @Service
@@ -40,7 +41,6 @@ public class ReportServiceImpl implements ReportService {
     private final ExpenseRepository expenseRepository;
     private final HarvestRepository harvestRepository;
     private final ActivityRepository activityRepository;
-    private final CropPlanRepository cropPlanRepository;
 
     private final ActivityMapper activityMapper;
     private final ExpenseMapper expenseMapper;
@@ -53,35 +53,31 @@ public class ReportServiceImpl implements ReportService {
         Farm farm = farmRepository.findById(farmId)
                 .orElseThrow(() -> new ResourceNotFoundException("Farm", "id", farmId));
 
-        BigDecimal totalExpenses = expenseRepository.sumExpensesByFarmId(farmId);
-        if (totalExpenses == null) totalExpenses = BigDecimal.ZERO;
-
-        BigDecimal totalRevenue = harvestRepository.sumHarvestRevenueByFarmId(farmId);
-        if (totalRevenue == null) totalRevenue = BigDecimal.ZERO;
-
-        BigDecimal netProfitOrLoss = totalRevenue.subtract(totalExpenses);
+        BigDecimal totalExpenses = nonNull(expenseRepository.sumExpensesByFarmId(farmId));
+        BigDecimal totalRevenue = nonNull(harvestRepository.sumHarvestRevenueByFarmId(farmId));
         long completedActivities = activityRepository.countByFieldFarmIdAndStatus(farmId, ActivityStatus.COMPLETED);
         long harvestCount = harvestRepository.countHarvestsByFarmId(farmId);
 
-        return FarmFinancialSummaryDTO.builder()
-                .farmId(farm.getId())
-                .farmName(farm.getName())
-                .farmerId(farm.getFarmer() != null ? farm.getFarmer().getId() : null)
-                .farmerName(farm.getFarmer() != null ? farm.getFarmer().getFullName() : null)
-                .totalExpenses(totalExpenses)
-                .totalHarvestRevenue(totalRevenue)
-                .netProfitOrLoss(netProfitOrLoss)
-                .totalActivitiesCompleted(completedActivities)
-                .totalHarvestEvents(harvestCount)
-                .build();
+        return buildFarmSummary(farm, totalExpenses, totalRevenue, completedActivities, harvestCount);
     }
 
     @Override
     public List<FarmFinancialSummaryDTO> getAllFarmsFinancialSummary() {
-        log.info("Generating financial summary across all farms");
-        List<Farm> allFarms = farmRepository.findAll();
+        log.info("Generating financial summary across all farms (batch aggregated)");
+        List<Farm> allFarms = farmRepository.findAllWithFarmer();
+        Map<Long, BigDecimal> expensesByFarm = toBigDecimalMap(expenseRepository.sumExpensesGroupedByFarm());
+        Map<Long, BigDecimal> revenueByFarm = toBigDecimalMap(harvestRepository.sumRevenueGroupedByFarm());
+        Map<Long, Long> harvestsByFarm = toCountMap(harvestRepository.countHarvestsGroupedByFarm());
+        Map<Long, Long> completedByFarm = toCountMap(
+                activityRepository.countByStatusGroupedByFarm(ActivityStatus.COMPLETED));
+
         return allFarms.stream()
-                .map(f -> getFarmFinancialReport(f.getId()))
+                .map(farm -> buildFarmSummary(
+                        farm,
+                        expensesByFarm.getOrDefault(farm.getId(), BigDecimal.ZERO),
+                        revenueByFarm.getOrDefault(farm.getId(), BigDecimal.ZERO),
+                        completedByFarm.getOrDefault(farm.getId(), 0L),
+                        harvestsByFarm.getOrDefault(farm.getId(), 0L)))
                 .toList();
     }
 
@@ -98,60 +94,120 @@ public class ReportServiceImpl implements ReportService {
         long totalHarvests = 0;
 
         for (Farm f : farms) {
-            BigDecimal exp = expenseRepository.sumExpensesByFarmId(f.getId());
-            if (exp != null) totalExpenses = totalExpenses.add(exp);
-
-            BigDecimal rev = harvestRepository.sumHarvestRevenueByFarmId(f.getId());
-            if (rev != null) totalRevenue = totalRevenue.add(rev);
-
+            totalExpenses = totalExpenses.add(nonNull(expenseRepository.sumExpensesByFarmId(f.getId())));
+            totalRevenue = totalRevenue.add(nonNull(harvestRepository.sumHarvestRevenueByFarmId(f.getId())));
             totalActivities += activityRepository.countByFieldFarmIdAndStatus(f.getId(), ActivityStatus.COMPLETED);
             totalHarvests += harvestRepository.countHarvestsByFarmId(f.getId());
         }
 
-        BigDecimal netProfitOrLoss = totalRevenue.subtract(totalExpenses);
+        return buildFarmerSummary(farmer, farms.size(), totalExpenses, totalRevenue, totalActivities, totalHarvests);
+    }
 
+    @Override
+    public List<FarmerFinancialSummaryDTO> getAllFarmersFinancialSummary() {
+        log.info("Generating financial summary across all farmers (batch aggregated)");
+        List<Farmer> allFarmers = farmerRepository.findAll();
+        Map<Long, List<Farm>> farmsByFarmer = farmRepository.findAllWithFarmer().stream()
+                .filter(f -> f.getFarmer() != null)
+                .collect(Collectors.groupingBy(f -> f.getFarmer().getId()));
+        Map<Long, BigDecimal> expensesByFarm = toBigDecimalMap(expenseRepository.sumExpensesGroupedByFarm());
+        Map<Long, BigDecimal> revenueByFarm = toBigDecimalMap(harvestRepository.sumRevenueGroupedByFarm());
+        Map<Long, Long> harvestsByFarm = toCountMap(harvestRepository.countHarvestsGroupedByFarm());
+        Map<Long, Long> completedByFarm = toCountMap(
+                activityRepository.countByStatusGroupedByFarm(ActivityStatus.COMPLETED));
+
+        return allFarmers.stream()
+                .map(farmer -> {
+                    List<Farm> farms = farmsByFarmer.getOrDefault(farmer.getId(), List.of());
+                    BigDecimal totalExpenses = BigDecimal.ZERO;
+                    BigDecimal totalRevenue = BigDecimal.ZERO;
+                    long totalActivities = 0;
+                    long totalHarvests = 0;
+                    for (Farm f : farms) {
+                        totalExpenses = totalExpenses.add(expensesByFarm.getOrDefault(f.getId(), BigDecimal.ZERO));
+                        totalRevenue = totalRevenue.add(revenueByFarm.getOrDefault(f.getId(), BigDecimal.ZERO));
+                        totalActivities += completedByFarm.getOrDefault(f.getId(), 0L);
+                        totalHarvests += harvestsByFarm.getOrDefault(f.getId(), 0L);
+                    }
+                    return buildFarmerSummary(farmer, farms.size(), totalExpenses, totalRevenue, totalActivities, totalHarvests);
+                })
+                .toList();
+    }
+
+    @Override
+    @Cacheable(value = "fieldHistory", key = "#fieldId")
+    public FieldHistoryResponseDTO getFieldHistory(Long fieldId) {
+        log.info("Generating lifecycle history for field ID: {}", fieldId);
+        Field field = fieldRepository.findById(fieldId)
+                .orElseThrow(() -> new ResourceNotFoundException("Field", "id", fieldId));
+
+        return FieldHistoryResponseDTO.builder()
+                .fieldId(field.getId())
+                .fieldName(field.getName())
+                .farmName(field.getFarm() != null ? field.getFarm().getName() : null)
+                .status(field.getStatus())
+                .currentCrop(field.getCurrentCrop() != null ? field.getCurrentCrop().getName() : "None")
+                .cropPlans(field.getCropPlans().stream().map(cropPlanMapper::toResponseDTO).toList())
+                .activities(field.getActivities().stream().map(activityMapper::toResponseDTO).toList())
+                .expenses(field.getExpenses().stream().map(expenseMapper::toResponseDTO).toList())
+                .harvests(field.getHarvests().stream().map(harvestMapper::toResponseDTO).toList())
+                .build();
+    }
+
+    private FarmFinancialSummaryDTO buildFarmSummary(
+            Farm farm, BigDecimal totalExpenses, BigDecimal totalRevenue,
+            long completedActivities, long harvestCount) {
+        return FarmFinancialSummaryDTO.builder()
+                .farmId(farm.getId())
+                .farmName(farm.getName())
+                .farmerId(farm.getFarmer() != null ? farm.getFarmer().getId() : null)
+                .farmerName(farm.getFarmer() != null ? farm.getFarmer().getFullName() : null)
+                .totalExpenses(totalExpenses)
+                .totalHarvestRevenue(totalRevenue)
+                .netProfitOrLoss(totalRevenue.subtract(totalExpenses))
+                .totalActivitiesCompleted(completedActivities)
+                .totalHarvestEvents(harvestCount)
+                .build();
+    }
+
+    private FarmerFinancialSummaryDTO buildFarmerSummary(
+            Farmer farmer, int totalFarms, BigDecimal totalExpenses,
+            BigDecimal totalRevenue, long totalActivities, long totalHarvests) {
         return FarmerFinancialSummaryDTO.builder()
                 .farmerId(farmer.getId())
                 .farmerName(farmer.getFullName())
                 .email(farmer.getEmail())
                 .phoneNumber(farmer.getPhoneNumber())
-                .totalFarms(farms.size())
+                .totalFarms(totalFarms)
                 .totalExpenses(totalExpenses)
                 .totalHarvestRevenue(totalRevenue)
-                .netProfitOrLoss(netProfitOrLoss)
+                .netProfitOrLoss(totalRevenue.subtract(totalExpenses))
                 .totalActivitiesCompleted(totalActivities)
                 .totalHarvestEvents(totalHarvests)
                 .build();
     }
 
-    @Override
-    public List<FarmerFinancialSummaryDTO> getAllFarmersFinancialSummary() {
-        log.info("Generating financial summary across all farmers");
-        List<Farmer> allFarmers = farmerRepository.findAll();
-        return allFarmers.stream()
-                .map(f -> getFarmerFinancialReport(f.getId()))
-                .toList();
+    private static BigDecimal nonNull(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 
-    @Override
-    public Map<String, Object> getFieldHistory(Long fieldId) {
-        log.info("Generating lifecycle history for field ID: {}", fieldId);
-        Field field = fieldRepository.findById(fieldId)
-                .orElseThrow(() -> new ResourceNotFoundException("Field", "id", fieldId));
+    private static Map<Long, BigDecimal> toBigDecimalMap(List<Object[]> rows) {
+        Map<Long, BigDecimal> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row[0] != null) {
+                map.put(((Number) row[0]).longValue(), nonNull((BigDecimal) row[1]));
+            }
+        }
+        return map;
+    }
 
-        Map<String, Object> history = new HashMap<>();
-        history.put("fieldId", field.getId());
-        history.put("fieldName", field.getName());
-        history.put("farmName", field.getFarm() != null ? field.getFarm().getName() : null);
-        history.put("status", field.getStatus());
-        history.put("currentCrop", field.getCurrentCrop() != null ? field.getCurrentCrop().getName() : "None");
-
-        // History of plans, activities, expenses and harvests
-        history.put("cropPlans", field.getCropPlans().stream().map(cropPlanMapper::toResponseDTO).toList());
-        history.put("activities", field.getActivities().stream().map(activityMapper::toResponseDTO).toList());
-        history.put("expenses", field.getExpenses().stream().map(expenseMapper::toResponseDTO).toList());
-        history.put("harvests", field.getHarvests().stream().map(harvestMapper::toResponseDTO).toList());
-
-        return history;
+    private static Map<Long, Long> toCountMap(List<Object[]> rows) {
+        Map<Long, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row[0] != null && row[1] != null) {
+                map.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+            }
+        }
+        return map;
     }
 }

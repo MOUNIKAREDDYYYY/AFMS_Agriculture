@@ -25,9 +25,20 @@ import java.util.List;
 @Repository
 public interface HarvestRepository extends JpaRepository<Harvest, Long> {
 
-    Page<Harvest> findByFieldId(Long fieldId, Pageable pageable);
+    @Query("SELECT h FROM Harvest h WHERE " +
+           "(:fieldId IS NULL OR h.field.id = :fieldId) AND " +
+           "(:cropId IS NULL OR h.crop.id = :cropId)")
+    Page<Harvest> findByFilters(@Param("fieldId") Long fieldId,
+                                @Param("cropId") Long cropId,
+                                Pageable pageable);
 
-    Page<Harvest> findByCropId(Long cropId, Pageable pageable);
+    // Search harvests by field name, crop name, quality grade, or storage location
+    @Query("SELECT h FROM Harvest h WHERE " +
+           "LOWER(h.field.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(h.crop.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(COALESCE(h.qualityGrade, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(COALESCE(h.storageLocation, '')) LIKE LOWER(CONCAT('%', :query, '%'))")
+    Page<Harvest> searchHarvests(@Param("query") String query, Pageable pageable);
 
     // Date filtering: Harvests reaped between two dates
     @Query("SELECT h FROM Harvest h WHERE h.harvestDate BETWEEN :startDate AND :endDate ORDER BY h.harvestDate DESC")
@@ -46,6 +57,13 @@ public interface HarvestRepository extends JpaRepository<Harvest, Long> {
     // Aggregation Query 2: Total harvest count for a farm
     @Query("SELECT COUNT(h) FROM Harvest h WHERE h.field.farm.id = :farmId")
     long countHarvestsByFarmId(@Param("farmId") Long farmId);
+
+    // Batch aggregations grouped by farm ID
+    @Query("SELECT h.field.farm.id, COALESCE(SUM(h.totalRevenue), 0) FROM Harvest h GROUP BY h.field.farm.id")
+    List<Object[]> sumRevenueGroupedByFarm();
+
+    @Query("SELECT h.field.farm.id, COUNT(h) FROM Harvest h GROUP BY h.field.farm.id")
+    List<Object[]> countHarvestsGroupedByFarm();
 
     // Aggregation Query 3: Harvest yield and revenue summary grouped by Crop
     @Query("SELECT new com.AgricultureFMSystem.AgricultureFMSystem.dto.response.HarvestSummaryDTO(" +

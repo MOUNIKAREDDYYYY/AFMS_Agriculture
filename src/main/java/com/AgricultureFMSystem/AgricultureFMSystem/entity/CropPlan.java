@@ -1,12 +1,16 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.entity;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropPlanStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropPlanStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * ============================================================================================
@@ -16,13 +20,18 @@ import java.time.LocalDate;
  * Supports status transitions: DRAFT -> APPROVED -> IN_PROGRESS -> COMPLETED / CANCELLED.
  */
 @Entity
-@Table(name = "crop_plans")
+@Table(name = "crop_plans", indexes = {
+        @Index(name = "idx_crop_plans_start_date", columnList = "planned_start_date"),
+        @Index(name = "idx_crop_plans_status", columnList = "status"),
+        @Index(name = "idx_crop_plans_season", columnList = "season")
+})
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CropPlan extends BaseEntity {
+public class CropPlan {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -62,4 +71,12 @@ public class CropPlan extends BaseEntity {
 
     @Column(name = "notes", length = 500)
     private String notes;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

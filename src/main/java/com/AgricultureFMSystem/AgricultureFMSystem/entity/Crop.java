@@ -1,9 +1,14 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.entity;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropCategory;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
 
 /**
  * ============================================================================================
@@ -12,13 +17,16 @@ import lombok.*;
  * Defines botanical and agricultural specifications for crops cultivated across fields.
  */
 @Entity
-@Table(name = "crops")
+@Table(name = "crops", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_crops_name_variety", columnNames = {"name", "variety"})
+})
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Crop extends BaseEntity {
+public class Crop {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,4 +60,12 @@ public class Crop extends BaseEntity {
 
     @Column(name = "yield_unit", length = 20)
     private String yieldUnit; // e.g., "KG", "QUINTAL", "TON"
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

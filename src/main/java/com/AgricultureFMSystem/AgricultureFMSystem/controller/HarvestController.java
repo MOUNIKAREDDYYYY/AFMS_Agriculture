@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -40,7 +39,6 @@ import java.util.Map;
  * - GET    /api/harvests/report/by-crop-and-date -> Filtered yield aggregation
  * - GET    /api/harvests/report/farm-revenue     -> Total harvest revenue for a farm
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/harvests")
 @RequiredArgsConstructor
@@ -52,9 +50,7 @@ public class HarvestController {
     @PostMapping
     @Operation(summary = "Record a harvest", description = "Logs production yield from a field with quality grade and revenue.")
     public ResponseEntity<HarvestResponseDTO> recordHarvest(@Valid @RequestBody HarvestRequestDTO requestDTO) {
-        log.info("REST request to log harvest: quantity={} {}", requestDTO.getQuantity(), requestDTO.getUnit());
-        HarvestResponseDTO response = harvestService.recordHarvest(requestDTO);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(harvestService.recordHarvest(requestDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -66,12 +62,8 @@ public class HarvestController {
             @RequestParam(required = false) Long cropId,
             @PageableDefault(page = 0, size = 10, sort = "harvestDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.debug("REST request to list harvests: fieldId={}, cropId={}", fieldId, cropId);
-        if (fieldId != null) {
-            return ResponseEntity.ok(harvestService.getHarvestsByFieldId(fieldId, pageable));
-        }
-        if (cropId != null) {
-            return ResponseEntity.ok(harvestService.getHarvestsByCropId(cropId, pageable));
+        if (fieldId != null || cropId != null) {
+            return ResponseEntity.ok(harvestService.getHarvestsByFilters(fieldId, cropId, pageable));
         }
         return ResponseEntity.ok(harvestService.getAllHarvests(pageable));
     }
@@ -79,8 +71,16 @@ public class HarvestController {
     @GetMapping("/{id}")
     @Operation(summary = "Get harvest by ID", description = "Fetches details of a harvest record.")
     public ResponseEntity<HarvestResponseDTO> getHarvestById(@PathVariable Long id) {
-        log.debug("REST request to get harvest ID: {}", id);
         return ResponseEntity.ok(harvestService.getHarvestById(id));
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Search harvests", description = "Searches harvest records by field name, crop name, quality grade, or storage location.")
+    public ResponseEntity<PagedResponse<HarvestResponseDTO>> searchHarvests(
+            @RequestParam String query,
+            @PageableDefault(page = 0, size = 10, sort = "harvestDate", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        return ResponseEntity.ok(harvestService.searchHarvests(query, pageable));
     }
 
     @GetMapping("/date-range")
@@ -90,7 +90,6 @@ public class HarvestController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @PageableDefault(page = 0, size = 10, sort = "harvestDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.debug("REST request for harvests between {} and {}", startDate, endDate);
         return ResponseEntity.ok(harvestService.getHarvestsByDateRange(startDate, endDate, pageable));
     }
 
@@ -100,7 +99,6 @@ public class HarvestController {
             @PathVariable Long id,
             @Valid @RequestBody HarvestRequestDTO requestDTO) {
 
-        log.info("REST request to update harvest ID: {}", id);
         return ResponseEntity.ok(harvestService.updateHarvest(id, requestDTO));
     }
 
@@ -110,14 +108,12 @@ public class HarvestController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
 
-        log.info("REST request to patch harvest ID: {}", id);
         return ResponseEntity.ok(harvestService.patchHarvest(id, updates));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete harvest record", description = "Deletes a harvest entry.")
     public ResponseEntity<Void> deleteHarvest(@PathVariable Long id) {
-        log.info("REST request to delete harvest ID: {}", id);
         harvestService.deleteHarvest(id);
         return ResponseEntity.noContent().build();
     }
@@ -125,7 +121,6 @@ public class HarvestController {
     @GetMapping("/report/by-crop")
     @Operation(summary = "Harvest summary by crop", description = "Business API: Aggregation query summing total harvested quantity and revenue per crop.")
     public ResponseEntity<List<HarvestSummaryDTO>> getHarvestSummaryByCrop() {
-        log.info("REST request for aggregate harvest summary grouped by crop");
         return ResponseEntity.ok(harvestService.getHarvestSummaryByCrop());
     }
 
@@ -135,14 +130,12 @@ public class HarvestController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
-        log.info("REST request for crop harvest summary between {} and {}", startDate, endDate);
         return ResponseEntity.ok(harvestService.getHarvestSummaryByCropAndDateRange(startDate, endDate));
     }
 
     @GetMapping("/report/farm-revenue")
     @Operation(summary = "Total harvest revenue for a farm", description = "Business API: Calculates total revenue reaped from all fields of a farm.")
     public ResponseEntity<BigDecimal> getTotalRevenueForFarm(@RequestParam Long farmId) {
-        log.info("REST request for total revenue of farm ID: {}", farmId);
         return ResponseEntity.ok(harvestService.getTotalRevenueByFarm(farmId));
     }
 }

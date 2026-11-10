@@ -1,22 +1,19 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.config;
 
+import com.AgricultureFMSystem.AgricultureFMSystem.security.AuthSecurityInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.nio.file.Paths;
+
 /**
- * ============================================================================================
- * Phase 2, 4 & 5: Spring MVC Web Configuration (CORS, Interceptors, Static Uploads)
- * ============================================================================================
- * // Purpose: Configures WebMvcConfigurer for:
- * // - Security & Auth HandlerInterceptors
- * // - CORS (Cross-Origin Resource Sharing) for React/Angular/Vue frontends
- * // - Static resource handling for uploaded documents
- * ============================================================================================
+ * Configures Spring MVC security interceptor, CORS policies, and static upload handling.
  */
 @Slf4j
 @Configuration
@@ -25,16 +22,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final AuthSecurityInterceptor authSecurityInterceptor;
 
-    /**
-     * // Register security interceptor for API routes
-     */
+    @Value("${app.file.upload-dir:uploads}")
+    private String uploadDir = "uploads";
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        log.info("// [WebMvcConfig] Registering AuthSecurityInterceptor for /api/** routes");
+        log.info("[WebMvcConfig] Registering AuthSecurityInterceptor for /api/** routes");
         registry.addInterceptor(authSecurityInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
-                        "/api/auth/**",
+                        "/api/auth/login",
+                        "/api/auth/register",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/v3/api-docs/**",
@@ -42,12 +40,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 );
     }
 
-    /**
-     * // Configure Global CORS mapping
-     */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        log.info("// [WebMvcConfig] Configuring CORS policies for all endpoints");
+        log.info("[WebMvcConfig] Configuring CORS policies for all endpoints");
         registry.addMapping("/**")
                 .allowedOrigins("*")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
@@ -55,12 +50,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .maxAge(3600);
     }
 
-    /**
-     * // Map uploads directory as a static resource path
-     */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String locationUri = Paths.get(uploadDir).toAbsolutePath().normalize().toUri().toString();
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:uploads/");
+                .addResourceLocations(locationUri);
     }
 }

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * ============================================================================================
  * Phase 2 & 5: Custom UnauthorizedException (HTTP 401)
  * ============================================================================================
- * // Purpose: Thrown when credentials or token authentication fail
+ * Purpose: Thrown when credentials or token authentication fail
  * ============================================================================================
  */
 @ResponseStatus(HttpStatus.UNAUTHORIZED)

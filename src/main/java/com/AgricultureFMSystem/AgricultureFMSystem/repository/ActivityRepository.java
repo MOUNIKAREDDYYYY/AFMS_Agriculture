@@ -1,8 +1,8 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.repository;
 
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Activity;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ActivityType;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ActivityType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,16 +21,17 @@ import java.util.List;
 @Repository
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
-    Page<Activity> findByFieldId(Long fieldId, Pageable pageable);
+    @Query("SELECT a FROM Activity a WHERE " +
+           "(:fieldId IS NULL OR a.field.id = :fieldId) AND " +
+           "(:status IS NULL OR a.status = :status) AND " +
+           "(:activityType IS NULL OR a.activityType = :activityType)")
+    Page<Activity> findByFilters(@Param("fieldId") Long fieldId,
+                                 @Param("status") ActivityStatus status,
+                                 @Param("activityType") ActivityType activityType,
+                                 Pageable pageable);
 
-    Page<Activity> findByStatus(ActivityStatus status, Pageable pageable);
-
-    Page<Activity> findByActivityType(ActivityType activityType, Pageable pageable);
-
-    Page<Activity> findByFieldIdAndStatus(Long fieldId, ActivityStatus status, Pageable pageable);
-
-    // Business API: Pending activities (PLANNED or IN_PROGRESS)
-    @Query("SELECT a FROM Activity a WHERE a.status IN ('PLANNED', 'IN_PROGRESS') ORDER BY a.scheduledDate ASC")
+    // Business API: Pending activities (PLANNED or IN_PROGRESS), eagerly fetching field for scheduler & DTO mapping
+    @Query("SELECT a FROM Activity a LEFT JOIN FETCH a.field LEFT JOIN FETCH a.crop WHERE a.status IN ('PLANNED', 'IN_PROGRESS') ORDER BY a.scheduledDate ASC")
     List<Activity> findPendingActivities();
 
     // Date filtering: Activities scheduled between date range
@@ -47,4 +48,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     Page<Activity> searchActivities(@Param("query") String query, Pageable pageable);
 
     long countByFieldFarmIdAndStatus(Long farmId, ActivityStatus status);
+
+    @Query("SELECT a.field.farm.id, COUNT(a) FROM Activity a WHERE a.status = :status GROUP BY a.field.farm.id")
+    List<Object[]> countByStatusGroupedByFarm(@Param("status") ActivityStatus status);
 }

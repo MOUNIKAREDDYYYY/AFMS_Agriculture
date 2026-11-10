@@ -6,7 +6,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Crop;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Farm;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Field;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.FieldStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.FieldStatus;
 import com.AgricultureFMSystem.AgricultureFMSystem.exception.ResourceNotFoundException;
 import com.AgricultureFMSystem.AgricultureFMSystem.mapper.FieldMapper;
 import com.AgricultureFMSystem.AgricultureFMSystem.repository.CropRepository;
@@ -15,6 +15,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.repository.FieldRepository;
 import com.AgricultureFMSystem.AgricultureFMSystem.service.FieldService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class FieldServiceImpl implements FieldService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"farms", "fieldHistory"}, allEntries = true)
     public FieldResponseDTO createField(FieldRequestDTO requestDTO) {
         log.info("Creating new field '{}' in farm ID {}", requestDTO.getName(), requestDTO.getFarmId());
 
@@ -74,20 +76,12 @@ public class FieldServiceImpl implements FieldService {
     }
 
     @Override
-    public PagedResponse<FieldResponseDTO> getFieldsByFarmId(Long farmId, Pageable pageable) {
-        log.debug("Fetching fields for farm ID: {}", farmId);
-        if (!farmRepository.existsById(farmId)) {
+    public PagedResponse<FieldResponseDTO> getFieldsByFilters(Long farmId, FieldStatus status, Pageable pageable) {
+        log.debug("Fetching fields with filters: farmId={}, status={}", farmId, status);
+        if (farmId != null && !farmRepository.existsById(farmId)) {
             throw new ResourceNotFoundException("Farm", "id", farmId);
         }
-        Page<FieldResponseDTO> page = fieldRepository.findByFarmId(farmId, pageable)
-                .map(fieldMapper::toResponseDTO);
-        return PagedResponse.of(page);
-    }
-
-    @Override
-    public PagedResponse<FieldResponseDTO> getFieldsByStatus(FieldStatus status, Pageable pageable) {
-        log.debug("Fetching fields by status: {}", status);
-        Page<FieldResponseDTO> page = fieldRepository.findByStatus(status, pageable)
+        Page<FieldResponseDTO> page = fieldRepository.findByFilters(farmId, status, pageable)
                 .map(fieldMapper::toResponseDTO);
         return PagedResponse.of(page);
     }
@@ -102,6 +96,7 @@ public class FieldServiceImpl implements FieldService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"farms", "fieldHistory"}, allEntries = true)
     public FieldResponseDTO updateField(Long id, FieldRequestDTO requestDTO) {
         log.info("Updating field with ID: {}", id);
         Field existing = fieldRepository.findById(id)
@@ -126,6 +121,7 @@ public class FieldServiceImpl implements FieldService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"farms", "fieldHistory"}, allEntries = true)
     public FieldResponseDTO patchField(Long id, Map<String, Object> updates) {
         log.info("Applying partial updates to field ID: {}", id);
         Field existing = fieldRepository.findById(id)
@@ -133,16 +129,16 @@ public class FieldServiceImpl implements FieldService {
 
         updates.forEach((key, value) -> {
             switch (key) {
-                case "name" -> existing.setName((String) value);
-                case "areaInAcres" -> existing.setAreaInAcres(Double.parseDouble(value.toString()));
-                case "soilType" -> existing.setSoilType((String) value);
-                case "irrigationType" -> existing.setIrrigationType((String) value);
-                case "status" -> existing.setStatus(FieldStatus.valueOf(value.toString()));
+                case "name" -> existing.setName(PatchHelper.requireNonBlankString("name", value));
+                case "areaInAcres" -> existing.setAreaInAcres(PatchHelper.requireDouble("areaInAcres", value, true));
+                case "soilType" -> existing.setSoilType(PatchHelper.optionalString("soilType", value));
+                case "irrigationType" -> existing.setIrrigationType(PatchHelper.optionalString("irrigationType", value));
+                case "status" -> existing.setStatus(PatchHelper.requireEnum("status", value, FieldStatus.class));
                 case "currentCropId" -> {
                     if (value == null) {
                         existing.setCurrentCrop(null);
                     } else {
-                        Long cropId = Long.parseLong(value.toString());
+                        Long cropId = PatchHelper.requireLong("currentCropId", value);
                         Crop crop = cropRepository.findById(cropId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Crop", "id", cropId));
                         existing.setCurrentCrop(crop);
@@ -157,6 +153,7 @@ public class FieldServiceImpl implements FieldService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"farms", "fieldHistory"}, allEntries = true)
     public void deleteField(Long id) {
         log.info("Deleting field with ID: {}", id);
         Field field = fieldRepository.findById(id)
@@ -166,6 +163,7 @@ public class FieldServiceImpl implements FieldService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public FieldResponseDTO updateFieldStatus(Long id, FieldStatus status) {
         log.info("Updating status of field {} to {}", id, status);
         Field field = fieldRepository.findById(id)
@@ -177,6 +175,7 @@ public class FieldServiceImpl implements FieldService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "fieldHistory", allEntries = true)
     public FieldResponseDTO assignCropToField(Long fieldId, Long cropId) {
         log.info("Assigning crop {} to field {}", cropId, fieldId);
         Field field = fieldRepository.findById(fieldId)

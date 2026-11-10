@@ -24,9 +24,9 @@ public interface HarvestService {
 
     PagedResponse<HarvestResponseDTO> getAllHarvests(Pageable pageable);
 
-    PagedResponse<HarvestResponseDTO> getHarvestsByFieldId(Long fieldId, Pageable pageable);
+    PagedResponse<HarvestResponseDTO> getHarvestsByFilters(Long fieldId, Long cropId, Pageable pageable);
 
-    PagedResponse<HarvestResponseDTO> getHarvestsByCropId(Long cropId, Pageable pageable);
+    PagedResponse<HarvestResponseDTO> searchHarvests(String query, Pageable pageable);
 
     PagedResponse<HarvestResponseDTO> getHarvestsByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable);
 

@@ -3,8 +3,8 @@ package com.AgricultureFMSystem.AgricultureFMSystem.service;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.request.CropPlanRequestDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.CropPlanResponseDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.PagedResponse;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropPlanStatus;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropSeason;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropPlanStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropSeason;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
@@ -23,11 +23,9 @@ public interface CropPlanService {
 
     PagedResponse<CropPlanResponseDTO> getAllCropPlans(Pageable pageable);
 
-    PagedResponse<CropPlanResponseDTO> getCropPlansByFieldId(Long fieldId, Pageable pageable);
+    PagedResponse<CropPlanResponseDTO> getCropPlansByFilters(Long fieldId, CropPlanStatus status, CropSeason season, Pageable pageable);
 
-    PagedResponse<CropPlanResponseDTO> getCropPlansByStatus(CropPlanStatus status, Pageable pageable);
-
-    PagedResponse<CropPlanResponseDTO> getCropPlansBySeason(CropSeason season, Pageable pageable);
+    PagedResponse<CropPlanResponseDTO> searchCropPlans(String query, Pageable pageable);
 
     PagedResponse<CropPlanResponseDTO> getCropPlansByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable);
 

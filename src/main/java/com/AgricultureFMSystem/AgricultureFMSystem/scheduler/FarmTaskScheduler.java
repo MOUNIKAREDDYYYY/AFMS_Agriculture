@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,11 +26,10 @@ public class FarmTaskScheduler {
     private final ActivityRepository activityRepository;
 
     /**
-     * Runs every hour (or at 06:00 AM daily in production) to inspect overdue activities.
-     * Cron format: "0 0 6 * * *"
-     * Initial delay 10 seconds, fixedRate 3600000 ms (1 hour).
+     * Runs every hour (fixedRate = 3600000 ms, initialDelay = 10000 ms) to inspect overdue activities.
      */
     @Scheduled(initialDelay = 10000, fixedRate = 3600000)
+    @Transactional(readOnly = true)
     public void monitorOverdueActivities() {
         log.info("[Scheduler] Running automated check for overdue and upcoming farming activities...");
 

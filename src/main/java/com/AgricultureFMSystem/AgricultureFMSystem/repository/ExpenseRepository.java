@@ -2,7 +2,7 @@ package com.AgricultureFMSystem.AgricultureFMSystem.repository;
 
 import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.ExpenseSummaryDTO;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Expense;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.ExpenseCategory;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.ExpenseCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,13 +26,16 @@ import java.util.List;
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
-    Page<Expense> findByFarmId(Long farmId, Pageable pageable);
-
     List<Expense> findByFarmId(Long farmId);
 
-    Page<Expense> findByFieldId(Long fieldId, Pageable pageable);
-
-    Page<Expense> findByCategory(ExpenseCategory category, Pageable pageable);
+    @Query("SELECT e FROM Expense e WHERE " +
+           "(:farmId IS NULL OR e.farm.id = :farmId) AND " +
+           "(:fieldId IS NULL OR e.field.id = :fieldId) AND " +
+           "(:category IS NULL OR e.category = :category)")
+    Page<Expense> findByFilters(@Param("farmId") Long farmId,
+                                @Param("fieldId") Long fieldId,
+                                @Param("category") ExpenseCategory category,
+                                Pageable pageable);
 
     // Date Filtering: Find expenses incurred between two dates
     @Query("SELECT e FROM Expense e WHERE e.expenseDate BETWEEN :startDate AND :endDate ORDER BY e.expenseDate DESC")
@@ -43,6 +46,10 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     // Aggregation Query 1: Total expense amount for a farm
     @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e WHERE e.farm.id = :farmId")
     BigDecimal sumExpensesByFarmId(@Param("farmId") Long farmId);
+
+    // Batch aggregation: Total expense amount grouped by farm ID
+    @Query("SELECT e.farm.id, COALESCE(SUM(e.amount), 0) FROM Expense e GROUP BY e.farm.id")
+    List<Object[]> sumExpensesGroupedByFarm();
 
     // Aggregation Query 2: Total expense sum across date range
     @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e WHERE e.expenseDate BETWEEN :startDate AND :endDate")

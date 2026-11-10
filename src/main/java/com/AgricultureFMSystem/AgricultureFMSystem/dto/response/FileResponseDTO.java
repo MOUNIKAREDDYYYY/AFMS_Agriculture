@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * ============================================================================================
  * Phase 4: File Handling - File Upload Response DTO
  * ============================================================================================
- * // Purpose: Carries file metadata, storage location, size, and download link after upload
+ * Purpose: Carries file metadata, storage location, size, and download link after upload
  * ============================================================================================
  */
 @Data
@@ -20,24 +20,24 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FileResponseDTO {
 
-    // // Generated unique file name on server disk
+    // Generated unique file name on server disk
     private String fileName;
 
-    // // Original client file name
+    // Original client file name
     private String originalFileName;
 
-    // // REST URL to download/stream the file
+    // REST URL to download/stream the file
     private String fileDownloadUri;
 
-    // // MIME content type (e.g. image/jpeg, application/pdf)
+    // MIME content type (e.g. image/jpeg, application/pdf)
     private String fileType;
 
-    // // File size in bytes
+    // File size in bytes
     private long size;
 
-    // // Server upload timestamp
+    // Server upload timestamp
     private LocalDateTime uploadTimestamp;
 
-    // // Status description message
+    // Status description message
     private String message;
 }

@@ -7,7 +7,8 @@ The accompanying file **`Agriculture_Farm_Management_System.postman_collection.j
 
 ## Postman Configuration
 
-- **Collection Variable**: `baseUrl` = `http://localhost:8080`
+- **Collection Variable**: `baseUrl` = `http://localhost:8080`, `jwtToken` (auto-populated by `POST - Login User`)
+- **Authentication**: Bearer JWT (`Authorization: Bearer {{jwtToken}}`) required on all `/api/**` routes except `/api/auth/login` and `/api/auth/register`
 - **Request Header**: `Content-Type: application/json` (for all POST / PUT / PATCH requests)
 - **Pre-seeded Login Credentials**:
   - **Admin**: `admin` / `admin123`
@@ -37,7 +38,7 @@ The accompanying file **`Agriculture_Farm_Management_System.postman_collection.j
 **Response Body:**
 ```json
 {
-  "token": "afms_jwt_550e8400e29b41d4a716446655440000_YWRtaW4=",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "tokenType": "Bearer",
   "userId": 1,
   "username": "admin",
@@ -66,7 +67,8 @@ The accompanying file **`Agriculture_Farm_Management_System.postman_collection.j
 
 #### 0.3 Get Current User Profile
 - **Method**: `GET`
-- **URL**: `{{baseUrl}}/api/auth/me?username=admin`
+- **URL**: `{{baseUrl}}/api/auth/me`
+- **Headers**: `Authorization: Bearer {{jwtToken}}`
 - **Expected Status**: `200 OK`
 
 ---
@@ -274,12 +276,17 @@ The accompanying file **`Agriculture_Farm_Management_System.postman_collection.j
 - **URL**: `{{baseUrl}}/api/crop-plans/date-range?startDate=2026-01-01&endDate=2026-12-31&page=0&size=10`
 - **Expected Status**: `200 OK`
 
-#### 5.3 Approve Crop Plan (`/approve`)
+#### 5.3 Search Crop Plans
+- **Method**: `GET`
+- **URL**: `{{baseUrl}}/api/crop-plans/search?query=Wheat&page=0&size=10`
+- **Expected Status**: `200 OK`
+
+#### 5.4 Approve Crop Plan (`/approve`)
 - **Method**: `POST`
 - **URL**: `{{baseUrl}}/api/crop-plans/1/approve`
 - **Expected Status**: `200 OK`
 
-#### 5.4 Cancel Crop Plan (`/cancel`)
+#### 5.5 Cancel Crop Plan (`/cancel`)
 - **Method**: `POST`
 - **URL**: `{{baseUrl}}/api/crop-plans/1/cancel`
 - **Expected Status**: `200 OK`
@@ -388,12 +395,17 @@ The accompanying file **`Agriculture_Farm_Management_System.postman_collection.j
 }
 ```
 
-#### 8.2 Harvest Yield & Revenue Report by Crop
+#### 8.2 Search Harvests
+- **Method**: `GET`
+- **URL**: `{{baseUrl}}/api/harvests/search?query=Grade&page=0&size=10`
+- **Expected Status**: `200 OK`
+
+#### 8.3 Harvest Yield & Revenue Report by Crop
 - **Method**: `GET`
 - **URL**: `{{baseUrl}}/api/harvests/report/by-crop`
 - **Expected Status**: `200 OK`
 
-#### 8.3 Total Harvest Revenue for a Farm
+#### 8.4 Total Harvest Revenue for a Farm
 - **Method**: `GET`
 - **URL**: `{{baseUrl}}/api/harvests/report/farm-revenue?farmId=1`
 - **Expected Status**: `200 OK`

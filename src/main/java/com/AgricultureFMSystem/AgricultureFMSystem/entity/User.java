@@ -1,20 +1,26 @@
 package com.AgricultureFMSystem.AgricultureFMSystem.entity;
 
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.UserRole;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
 
 /**
  * User Entity for Authentication, Role-based Access, and Login.
  */
 @Entity
 @Table(name = "users")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User extends BaseEntity {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,4 +46,12 @@ public class User extends BaseEntity {
     @Builder.Default
     @Column(name = "active", nullable = false)
     private Boolean active = true;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -33,7 +32,6 @@ import java.util.Map;
  * - DELETE /api/farms/{id}   -> Delete farm
  * - GET    /api/farms/search -> Search by name or location
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/farms")
 @RequiredArgsConstructor
@@ -48,9 +46,7 @@ public class FarmController {
     @ApiResponse(responseCode = "400", description = "Validation failure")
     @ApiResponse(responseCode = "404", description = "Farmer not found")
     public ResponseEntity<FarmResponseDTO> createFarm(@Valid @RequestBody FarmRequestDTO requestDTO) {
-        log.info("REST request to create farm: {}", requestDTO.getName());
-        FarmResponseDTO response = farmService.createFarm(requestDTO);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(farmService.createFarm(requestDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -60,7 +56,6 @@ public class FarmController {
             @RequestParam(required = false) Long farmerId,
             @PageableDefault(page = 0, size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST request to get farms, farmerId filter: {}", farmerId);
         if (farmerId != null) {
             return ResponseEntity.ok(farmService.getFarmsByFarmerId(farmerId, pageable));
         }
@@ -70,7 +65,6 @@ public class FarmController {
     @GetMapping("/{id}")
     @Operation(summary = "Get farm by ID", description = "Fetches a farm by its unique identifier.")
     public ResponseEntity<FarmResponseDTO> getFarmById(@PathVariable Long id) {
-        log.debug("REST request to get farm ID: {}", id);
         return ResponseEntity.ok(farmService.getFarmById(id));
     }
 
@@ -80,7 +74,6 @@ public class FarmController {
             @RequestParam String query,
             @PageableDefault(page = 0, size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
 
-        log.debug("REST search farms with query: {}", query);
         return ResponseEntity.ok(farmService.searchFarms(query, pageable));
     }
 
@@ -90,7 +83,6 @@ public class FarmController {
             @PathVariable Long id,
             @Valid @RequestBody FarmRequestDTO requestDTO) {
 
-        log.info("REST request to update farm ID: {}", id);
         return ResponseEntity.ok(farmService.updateFarm(id, requestDTO));
     }
 
@@ -100,14 +92,12 @@ public class FarmController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
 
-        log.info("REST request to patch farm ID: {}", id);
         return ResponseEntity.ok(farmService.patchFarm(id, updates));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete farm", description = "Deletes a farm along with its fields and expenses.")
     public ResponseEntity<Void> deleteFarm(@PathVariable Long id) {
-        log.info("REST request to delete farm ID: {}", id);
         farmService.deleteFarm(id);
         return ResponseEntity.noContent().build();
     }

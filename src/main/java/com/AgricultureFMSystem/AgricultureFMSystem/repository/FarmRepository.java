@@ -23,6 +23,9 @@ public interface FarmRepository extends JpaRepository<Farm, Long> {
 
     List<Farm> findByFarmerId(Long farmerId);
 
+    @Query("SELECT f FROM Farm f LEFT JOIN FETCH f.farmer")
+    List<Farm> findAllWithFarmer();
+
     // Search farms by name or location
     @Query("SELECT f FROM Farm f WHERE " +
            "LOWER(f.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

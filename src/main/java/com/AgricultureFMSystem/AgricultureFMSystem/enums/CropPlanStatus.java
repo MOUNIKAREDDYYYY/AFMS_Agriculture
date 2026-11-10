@@ -1,4 +1,4 @@
-package com.AgricultureFMSystem.AgricultureFMSystem.entity.enums;
+package com.AgricultureFMSystem.AgricultureFMSystem.enums;
 
 /**
  * Status of an agricultural crop plan.

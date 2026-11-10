@@ -10,6 +10,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.service.FileStorageService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,18 +33,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * ============================================================================================
- * Phase 4: File Handling - FileStorageServiceImpl
- * ============================================================================================
- * // Purpose: Handles physical disk storage of agronomic files and CSV report generation.
- * //
- * // Concepts demonstrated:
- * // - MultipartFile: Processing file streams from HTTP POST multipart/form-data
- * // - java.nio.file.Path / Files: Secure storage directory creation and file copying
- * // - Path Traversal Prevention: StringUtils.cleanPath and path validation
- * // - Resource / UrlResource: Returning file resources for binary streaming
- * // - CSV Byte Streaming: Writing tabular harvest and expense records to CSV bytes
- * ============================================================================================
+ * Handles physical disk storage of agronomic files and RFC-4180 CSV exports.
  */
 @Slf4j
 @Service
@@ -50,63 +41,57 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class FileStorageServiceImpl implements FileStorageService {
 
-    // // Target directory where uploaded agricultural documents are stored
-    private final Path fileStorageLocation = Paths.get("uploads").toAbsolutePath().normalize();
+    @Value("${app.file.upload-dir:uploads}")
+    private String uploadDir = "uploads";
+
+    private Path fileStorageLocation;
 
     private final HarvestRepository harvestRepository;
     private final ExpenseRepository expenseRepository;
 
-    /**
-     * // Initialize the storage directory upon bean creation
-     */
     @PostConstruct
     public void init() {
         try {
+            this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
             Files.createDirectories(this.fileStorageLocation);
-            log.info("// [FileHandling] Initialized uploads storage directory at: {}", this.fileStorageLocation);
+            log.info("[FileHandling] Initialized uploads storage directory at: {}", this.fileStorageLocation);
         } catch (Exception ex) {
-            log.error("// [FileHandling] Could not create upload directory: {}", ex.getMessage());
+            log.error("[FileHandling] Could not create upload directory: {}", ex.getMessage());
             throw new RuntimeException("Could not create upload directory!", ex);
         }
     }
 
-    /**
-     * // Stores a multipart file with security sanitization and UUID prefix
-     */
     @Override
     public String storeFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new BadRequestException("Failed to store empty file.");
         }
 
-        // // Clean filename and validate against directory traversal attacks
         String originalFileName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
         if (originalFileName.contains("..")) {
             throw new BadRequestException("Invalid filename with path traversal sequence: " + originalFileName);
         }
 
-        // // Generate unique filename to avoid collision on disk
         String storedFileName = UUID.randomUUID().toString().substring(0, 8) + "_" + originalFileName;
 
         try {
             Path targetLocation = this.fileStorageLocation.resolve(storedFileName);
-            // // Copy file input stream to server disk, replacing existing if present
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            log.info("// [FileHandling] Successfully stored file '{}' as '{}'", originalFileName, storedFileName);
+            log.info("[FileHandling] Successfully stored file '{}' as '{}'", originalFileName, storedFileName);
             return storedFileName;
         } catch (IOException ex) {
-            log.error("// [FileHandling] Failed to store file {}: {}", storedFileName, ex.getMessage());
+            log.error("[FileHandling] Failed to store file {}: {}", storedFileName, ex.getMessage());
             throw new RuntimeException("Failed to store file " + storedFileName, ex);
         }
     }
 
-    /**
-     * // Loads a file as a Spring Resource for download
-     */
     @Override
     public Resource loadFileAsResource(String fileName) {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
+            if (!filePath.startsWith(this.fileStorageLocation)) {
+                throw new BadRequestException("Invalid file path: " + fileName);
+            }
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() && resource.isReadable()) {
@@ -119,38 +104,33 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    /**
-     * // Generates a CSV file containing all Harvest yield and revenue records
-     */
     @Override
     public byte[] exportHarvestsToCsv() {
-        log.info("// [FileHandling] Generating CSV export for all harvest records");
+        log.info("[FileHandling] Generating CSV export for all harvest records");
         List<Harvest> harvests = harvestRepository.findAll();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(baos, StandardCharsets.UTF_8))) {
-            // // CSV Header row
             writer.println("HarvestID,HarvestDate,FarmName,FieldCode,CropName,Quantity,Unit,QualityGrade,UnitPrice,TotalRevenue,StorageLocation");
 
-            // // CSV Data rows
             for (Harvest h : harvests) {
                 String farmName = (h.getField() != null && h.getField().getFarm() != null)
-                        ? h.getField().getFarm().getName().replace(",", " ") : "N/A";
-                String fieldName = h.getField() != null ? h.getField().getName().replace(",", " ") : "N/A";
+                        ? h.getField().getFarm().getName() : "N/A";
+                String fieldName = h.getField() != null ? h.getField().getName() : "N/A";
                 String cropName = h.getCrop() != null ? h.getCrop().getName() : "N/A";
 
                 writer.printf("%d,%s,%s,%s,%s,%.2f,%s,%s,%.2f,%.2f,%s%n",
                         h.getId(),
                         h.getHarvestDate(),
-                        farmName,
-                        fieldName,
-                        cropName,
+                        escapeCsv(farmName),
+                        escapeCsv(fieldName),
+                        escapeCsv(cropName),
                         h.getQuantity() != null ? h.getQuantity() : 0.0,
-                        h.getUnit() != null ? h.getUnit() : "N/A",
-                        h.getQualityGrade() != null ? h.getQualityGrade().replace(",", " ") : "Standard",
-                        h.getUnitPrice() != null ? h.getUnitPrice() : 0.0,
-                        h.getTotalRevenue() != null ? h.getTotalRevenue() : 0.0,
-                        h.getStorageLocation() != null ? h.getStorageLocation().replace(",", " ") : "Main Silo"
+                        escapeCsv(h.getUnit() != null ? h.getUnit() : "N/A"),
+                        escapeCsv(h.getQualityGrade() != null ? h.getQualityGrade() : "Standard"),
+                        h.getUnitPrice() != null ? h.getUnitPrice() : BigDecimal.ZERO,
+                        h.getTotalRevenue() != null ? h.getTotalRevenue() : BigDecimal.ZERO,
+                        escapeCsv(h.getStorageLocation() != null ? h.getStorageLocation() : "Main Silo")
                 );
             }
             writer.flush();
@@ -159,43 +139,57 @@ public class FileStorageServiceImpl implements FileStorageService {
         return baos.toByteArray();
     }
 
-    /**
-     * // Generates a CSV file of Farm Expenditures
-     */
     @Override
     public byte[] exportExpensesToCsv(Long farmId) {
-        log.info("// [FileHandling] Generating CSV export for farm expenditures (farmId: {})", farmId);
+        log.info("[FileHandling] Generating CSV export for farm expenditures (farmId: {})", farmId);
         List<Expense> expenses = (farmId != null)
                 ? expenseRepository.findByFarmId(farmId)
                 : expenseRepository.findAll();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(baos, StandardCharsets.UTF_8))) {
-            // // CSV Header row
             writer.println("ExpenseID,ExpenseDate,FarmName,Category,Amount,PaymentMethod,VendorName,Title,Notes");
 
-            // // CSV Data rows
             for (Expense e : expenses) {
-                String farmName = e.getFarm() != null ? e.getFarm().getName().replace(",", " ") : "N/A";
-                String vendor = e.getVendorName() != null ? e.getVendorName().replace(",", " ") : "Vendor";
-                String title = e.getTitle() != null ? e.getTitle().replace(",", " ") : "Agro expense";
-                String notes = e.getNotes() != null ? e.getNotes().replace(",", " ") : "N/A";
+                String farmName = e.getFarm() != null ? e.getFarm().getName() : "N/A";
+                String vendor = e.getVendorName() != null ? e.getVendorName() : "Vendor";
+                String title = e.getTitle() != null ? e.getTitle() : "Agro expense";
+                String notes = e.getNotes() != null ? e.getNotes() : "N/A";
 
                 writer.printf("%d,%s,%s,%s,%.2f,%s,%s,%s,%s%n",
                         e.getId(),
                         e.getExpenseDate(),
-                        farmName,
+                        escapeCsv(farmName),
                         e.getCategory(),
-                        e.getAmount() != null ? e.getAmount() : 0.0,
-                        e.getPaymentMethod() != null ? e.getPaymentMethod() : "BANK_TRANSFER",
-                        vendor,
-                        title,
-                        notes
+                        e.getAmount() != null ? e.getAmount() : BigDecimal.ZERO,
+                        escapeCsv(e.getPaymentMethod() != null ? e.getPaymentMethod() : "BANK_TRANSFER"),
+                        escapeCsv(vendor),
+                        escapeCsv(title),
+                        escapeCsv(notes)
                 );
             }
             writer.flush();
         }
 
         return baos.toByteArray();
+    }
+
+    private static String escapeCsv(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String sanitized = raw;
+        if (!sanitized.isEmpty()) {
+            char first = sanitized.charAt(0);
+            if (first == '=' || first == '+' || first == '-' || first == '@') {
+                sanitized = "'" + sanitized;
+            }
+        }
+        boolean needsQuotes = sanitized.contains(",") || sanitized.contains("\"")
+                || sanitized.contains("\n") || sanitized.contains("\r");
+        if (needsQuotes) {
+            return "\"" + sanitized.replace("\"", "\"\"") + "\"";
+        }
+        return sanitized;
     }
 }

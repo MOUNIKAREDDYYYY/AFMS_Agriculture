@@ -5,7 +5,7 @@ import com.AgricultureFMSystem.AgricultureFMSystem.dto.response.CropPlanResponse
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Crop;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.CropPlan;
 import com.AgricultureFMSystem.AgricultureFMSystem.entity.Field;
-import com.AgricultureFMSystem.AgricultureFMSystem.entity.enums.CropPlanStatus;
+import com.AgricultureFMSystem.AgricultureFMSystem.enums.CropPlanStatus;
 import org.springframework.stereotype.Component;
 
 /**
